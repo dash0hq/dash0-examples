@@ -16,6 +16,13 @@ processors:
     traces:
       span:
         - 'span.name == "drop me"'
+  transform:
+    error_mode: ignore
+    log_statements:
+      - context: log
+        statements:
+          - set(log.observed_time, Now()) where log.observed_time_unix_nano == 0
+          - set(log.time, log.observed_time) where log.time_unix_nano == 0
 
 exporters:
   otlp/dash0:
@@ -33,9 +40,6 @@ service:
     logs:
       receivers:
         - otlp
-      processors:
-        - batch
-        - filter
       exporters:
         - debug
         - otlp/dash0
@@ -43,8 +47,9 @@ service:
       receivers:
         - otlp
       processors:
-        - batch
         - filter
+        - transform
+        - batch
       exporters:
         - debug
         - otlp/dash0
@@ -52,8 +57,9 @@ service:
       receivers:
         - otlp
       processors:
-        - batch
         - filter
+        - transform
+        - batch
       exporters:
         - debug
         - otlp/dash0

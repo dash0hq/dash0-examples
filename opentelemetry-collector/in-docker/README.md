@@ -46,3 +46,17 @@ This script sends a sample trace span to the collector using the HTTP endpoint (
 2. Filter matching spans
 3. Output the span to the debug exporter (visible in logs)
 4. Forward the span to Dash0 using the OTLP exporter
+
+## Sending Test Logs
+
+The collector is also configured to transform logs using the transform processor:
+
+```bash
+./02_send-logs.sh
+```
+
+This script sends a sample log to the collector using the HTTP endpoint (port 4318). The collector will:
+1. Process the log with the configured batch processor
+2. Set the missing timestamp fields
+3. Output the span to the debug exporter (visible in logs)
+4. Forward the span to Dash0 using the OTLP exporter
