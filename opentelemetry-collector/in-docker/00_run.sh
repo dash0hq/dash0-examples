@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+
+set -eo pipefail
+
+source ../../.env
+
+docker run \
+  --rm \
+  --publish 4317:4317 \
+  --publish 4318:4318 \
+  -v "$(pwd)/config.yaml:/etc/otelcol-contrib/config.yaml" \
+  -e "DASH0_ENDPOINT_OTLP_GRPC_HOSTNAME=$DASH0_ENDPOINT_OTLP_GRPC_HOSTNAME" \
+  -e "DASH0_ENDPOINT_OTLP_GRPC_PORT=$DASH0_ENDPOINT_OTLP_GRPC_PORT" \
+  -e "DASH0_AUTH_TOKEN=$DASH0_AUTH_TOKEN" \
+  -e "DASH0_DATASET=$DASH0_DATASET" \
+  -e "OPENTELEMETRY_COLLECTOR_LOG_LEVEL=$OPENTELEMETRY_COLLECTOR_LOG_LEVEL" \
+  $OPENTELEMETRY_COLLECTOR_CONTAINER_IMAGE

@@ -1,0 +1,48 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch: {}
+
+exporters:
+  otlp/dash0:
+    endpoint: ${env:DASH0_ENDPOINT_OTLP_GRPC_HOSTNAME}:${env:DASH0_ENDPOINT_OTLP_GRPC_PORT}
+    headers:
+      Authorization: Bearer ${env:DASH0_AUTH_TOKEN}
+      Dash0-Dataset: ${env:DASH0_DATASET}
+  debug: {}
+
+service:
+  telemetry:
+    logs:
+      level: ${env:OPENTELEMETRY_COLLECTOR_LOG_LEVEL}
+  pipelines:
+    logs:
+      receivers:
+        - otlp
+      processors:
+        - batch
+      exporters:
+        - debug
+        - otlp/dash0
+    traces:
+      receivers:
+        - otlp
+      processors:
+        - batch
+      exporters:
+        - debug
+        - otlp/dash0
+    metrics:
+      receivers:
+        - otlp
+      processors:
+        - batch
+      exporters:
+        - debug
+        - otlp/dash0
