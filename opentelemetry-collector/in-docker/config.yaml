@@ -8,6 +8,14 @@ receivers:
 
 processors:
   batch: {}
+  filter:
+    error_mode: ignore
+    metrics:
+      datapoint:
+        - 'IsMatch(ConvertCase(String(metric.name), "lower"), "^k8s\\.replicaset\\.")'
+    traces:
+      span:
+        - 'span.name == "drop me"'
 
 exporters:
   otlp/dash0:
@@ -27,6 +35,7 @@ service:
         - otlp
       processors:
         - batch
+        - filter
       exporters:
         - debug
         - otlp/dash0
@@ -35,6 +44,7 @@ service:
         - otlp
       processors:
         - batch
+        - filter
       exporters:
         - debug
         - otlp/dash0
@@ -43,6 +53,7 @@ service:
         - otlp
       processors:
         - batch
+        - filter
       exporters:
         - debug
         - otlp/dash0

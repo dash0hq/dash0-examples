@@ -33,15 +33,16 @@ This will:
 - Mount the local `config.yaml` into the container
 - Pass environment variables from your `.env` file to the container
 
-## Sending a Test Span
+## Sending Test Spans
 
-To test the collector, you can send a sample span:
+To test the collector, you can send two sample spans (one of which will be dropped):
 
 ```bash
-./01_send-span.sh
+./01_send-spans.sh
 ```
 
 This script sends a sample trace span to the collector using the HTTP endpoint (port 4318). The collector will:
 1. Process the span with the configured batch processor
-2. Output the span to the debug exporter (visible in logs)
-3. Forward the span to Dash0 using the OTLP exporter
+2. Filter matching spans
+3. Output the span to the debug exporter (visible in logs)
+4. Forward the span to Dash0 using the OTLP exporter

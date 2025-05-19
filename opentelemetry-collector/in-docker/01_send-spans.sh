@@ -48,6 +48,29 @@ curl http://localhost:4318/v1/traces \
                 "code": 0,
                 "message": ""
               }
+            },
+            {
+              "attributes": [
+                {
+                  "key": "endpoint.name",
+                  "value": { "stringValue": "OTLP via HTTP" }
+                }
+              ],
+              "startTimeUnixNano": "'$(date +%s%N)'",
+              "endTimeUnixNano": "'$(date +%s%N)'",
+              "events": [],
+              "flags": 0,
+              "kind": 1,
+              "links": [],
+              "name": "drop me",
+              "traceId": "'$(date +%s)'705a7c87bc2f6dab94a7f4",
+              "parentSpanId": "",
+              "spanId": "e42ea8f8e32c0e78",
+              "traceState": "",
+              "status": {
+                "code": 2,
+                "message": "I will be dropped"
+              }
             }
           ]
         }
