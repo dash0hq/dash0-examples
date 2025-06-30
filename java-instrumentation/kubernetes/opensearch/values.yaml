@@ -1,0 +1,23 @@
+singleNode: true
+
+image:
+  tag: "2.14.0"
+
+extraEnvs:
+  - name: discovery.type
+    value: single-node
+  - name: OPENSEARCH_INITIAL_ADMIN_PASSWORD
+    value: SecureP@ssw0rd123
+
+resources:
+  limits:
+    memory: 2Gi
+    cpu: "1"
+
+persistence:
+  enabled: false  
+
+service:
+  type: NodePort
+  ports:
+    restAPI: 9200

@@ -1,0 +1,58 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+      http:
+
+processors:
+  batch:
+
+extensions:
+  basicauth/client:
+    client_auth:
+      username: admin
+      password: SecureP@ssw0rd123
+
+  bearertokenauth/dash0:
+    scheme: Bearer
+    token: ${env:DASH0_AUTHORIZATION_TOKEN}
+
+exporters:
+  prometheus:
+    endpoint: "0.0.0.0:8889"
+
+  otlp/jaeger:
+    endpoint: jaeger:4317
+    tls:
+      insecure: true
+
+  opensearch/log:
+    http:
+      endpoint: https://opensearch:9200
+      tls:
+        insecure_skip_verify: true
+      auth:
+        authenticator: basicauth/client
+
+  otlp/dash0:
+    auth:
+      authenticator: bearertokenauth/dash0
+    endpoint: ${env:DASH0_ENDPOINT_OTLP_GRPC_HOSTNAME}:${env:DASH0_ENDPOINT_OTLP_GRPC_PORT}
+
+service:
+  extensions: [basicauth/client, bearertokenauth/dash0]
+  pipelines:
+    metrics:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [prometheus, otlp/dash0]
+
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlp/jaeger, otlp/dash0]
+
+    logs:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [opensearch/log, otlp/dash0]

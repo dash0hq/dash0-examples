@@ -1,0 +1,121 @@
+services:
+  opensearch:
+    image: opensearchproject/opensearch:2.14.0
+    platform: linux/amd64
+    environment:
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=SecureP@ssw0rd123
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    ports:
+      - "9200:9200"
+
+  opensearch-dashboards:
+    image: opensearchproject/opensearch-dashboards:2.14.0
+    platform: linux/amd64
+    ports:
+      - "5601:5601"
+    environment:
+      - OPENSEARCH_HOSTS=https://opensearch:9200
+      - OPENSEARCH_USERNAME=admin
+      - OPENSEARCH_PASSWORD=SecureP@ssw0rd123
+    depends_on:
+      - opensearch
+
+  prometheus:
+    image: prom/prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.52
+    ports:
+      - "16686:16686"
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    expose:
+      - "4317"
+
+  otel-collector:
+    image: ${OPENTELEMETRY_COLLECTOR_CONTAINER_IMAGE:-otel/opentelemetry-collector-contrib:0.126.0}
+    ports:
+      - "4317:4317" # OTLP gRPC
+      - "4318:4318" # OTLP HTTP
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otelcol/config.yaml
+    command: [ "--config=/etc/otelcol/config.yaml" ]
+    environment:
+      - DASH0_ENDPOINT_OTLP_GRPC_HOSTNAME=${DASH0_ENDPOINT_OTLP_GRPC_HOSTNAME}
+      - DASH0_ENDPOINT_OTLP_GRPC_PORT=${DASH0_ENDPOINT_OTLP_GRPC_PORT}
+      - DASH0_AUTH_TOKEN=${DASH0_AUTH_TOKEN}
+      - DASH0_DATASET=${DASH0_DATASET}
+      - OPENTELEMETRY_COLLECTOR_LOG_LEVEL=${OPENTELEMETRY_COLLECTOR_LOG_LEVEL:-info}
+    depends_on:
+      - opensearch
+      - jaeger
+
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: todo
+      MYSQL_USER: todo
+      MYSQL_PASSWORD: mysecretPassword
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  validation-service:
+    build: ./validation-service
+    ports:
+      - "3001:3001"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_EXPORTER_OTLP_PROTOCOL=grpc
+      - OTEL_SERVICE_NAME=validation-service
+      - OTEL_RESOURCE_ATTRIBUTES=service.name=validation-service,service.version=1.0.0
+    depends_on:
+      - otel-collector
+
+  todo-service:
+    build: ./todo-service
+    ports:
+      - "3000:3000"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      validation-service:
+        condition: service_started
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/todo
+      - VALIDATION_SERVICE_URL=http://validation-service:3001
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_EXPORTER_OTLP_PROTOCOL=grpc
+      - OTEL_SERVICE_NAME=todo-service
+      - OTEL_RESOURCE_ATTRIBUTES=service.name=todo-service,service.version=1.0.0
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3002:80"
+    depends_on:
+      - todo-service
+      - otel-collector
+    environment:
+      - REACT_APP_API_URL=http://localhost:3000
+      - REACT_APP_OTEL_EXPORTER_URL=http://localhost:3002/v1/traces
+
+volumes:
+  mysql_data:

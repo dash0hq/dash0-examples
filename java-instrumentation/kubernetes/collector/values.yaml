@@ -1,0 +1,107 @@
+mode: deployment
+replicaCount: 1
+fullnameOverride: otel-collector
+
+image:
+  repository: otel/opentelemetry-collector-contrib
+
+resources:
+  limits:
+    memory: 512Mi
+  requests:
+    memory: 256Mi
+
+extraEnvs:
+  - name: OPENSEARCH_USERNAME
+    value: admin
+  - name: OPENSEARCH_PASSWORD
+    value: SecureP@ssw0rd123
+  - name: DASH0_AUTHORIZATION_TOKEN
+    valueFrom:
+      secretKeyRef:
+        name: dash0-secrets
+        key: dash0-authorization-token
+  - name: DASH0_ENDPOINT_OTLP_GRPC_HOSTNAME
+    valueFrom:
+      secretKeyRef:
+        name: dash0-secrets
+        key: dash0-grpc-hostname
+  - name: DASH0_ENDPOINT_OTLP_GRPC_PORT
+    valueFrom:
+      secretKeyRef:
+        name: dash0-secrets
+        key: dash0-grpc-port
+      
+
+service:
+  enabled: true
+
+config:
+  receivers:
+    otlp:
+      protocols:
+        grpc: {}
+        http: {}
+
+  processors:
+    batch: {}
+    attributes/flatten:
+      actions:
+        - action: insert
+          key: resource.app.kubernetes_io_component
+          from_attribute: app.kubernetes.io/component
+        - action: delete
+          key: app.kubernetes.io/component
+
+  exporters:
+    otlp/jaeger:
+      endpoint: jaeger-collector.default.svc.cluster.local:4317 
+      tls:
+        insecure: true
+
+    otlphttp/prometheus:
+      endpoint: http://prometheus.default.svc.cluster.local:9090/api/v1/otlp
+      tls:
+        insecure: true
+
+    opensearch/log:
+      http:
+        endpoint: https://opensearch-cluster-master.default.svc.cluster.local:9200
+        tls:
+          insecure_skip_verify: true
+        auth:
+          authenticator: basicauth/client
+
+    otlp/dash0:
+      auth:
+        authenticator: bearertokenauth/dash0
+      endpoint: ${env:DASH0_ENDPOINT_OTLP_GRPC_HOSTNAME}:${env:DASH0_ENDPOINT_OTLP_GRPC_PORT}
+
+  extensions:
+    basicauth/client:
+      client_auth:
+        username: ${env:OPENSEARCH_USERNAME}
+        password: ${env:OPENSEARCH_PASSWORD}
+
+    bearertokenauth/dash0:
+      scheme: Bearer
+      token: ${env:DASH0_AUTHORIZATION_TOKEN}
+
+  service:
+    extensions:
+      - basicauth/client
+      - health_check
+      - bearertokenauth/dash0
+    pipelines:
+      metrics:
+        receivers: [otlp, prometheus]
+        processors: [batch]
+        exporters: [otlphttp/prometheus,otlp/dash0]        
+      traces:
+        receivers: [otlp]
+        processors: [batch]
+        exporters: [otlp/jaeger,otlp/dash0]
+      logs:
+        receivers: [otlp]
+        processors: [batch,attributes/flatten]
+        exporters: [opensearch/log,otlp/dash0]
