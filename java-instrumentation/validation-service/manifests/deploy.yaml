@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: validation-service
+  name: validation-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: validation-service
+  template:
+    metadata:
+      labels:
+        app: validation-service
+      annotations:
+        instrumentation.opentelemetry.io/inject-java: "opentelemetry/instrumentation"
+    spec:
+      containers:
+      - image: validation-service:v1
+        name: validation-service
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 3001
+          name: http

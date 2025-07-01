@@ -1,0 +1,17 @@
+image:
+  tag: "2.14.0"
+
+opensearchHosts: "https://opensearch-cluster-master:9200"
+
+extraEnvs:
+  - name: OPENSEARCH_USERNAME
+    value: admin
+  - name: OPENSEARCH_PASSWORD
+    value: SecureP@ssw0rd123
+
+persistence:
+  enabled: false
+
+service:
+  type: NodePort
+  port: 5601

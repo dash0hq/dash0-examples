@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: frontend
+  name: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+      - image: frontend:v1
+        name: frontend
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 80
+          name: http
+        env:
+        - name: TODO_SERVICE_HOST
+          value: "todo-service"
+        - name: TODO_SERVICE_PORT
+          value: "3000"
+        - name: OTEL_COLLECTOR_HOST
+          value: "otel-collector.opentelemetry.svc.cluster.local"
+        - name: OTEL_COLLECTOR_PORT
+          value: "4318"

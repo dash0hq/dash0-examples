@@ -1,0 +1,21 @@
+apiVersion: opentelemetry.io/v1alpha1
+kind: Instrumentation
+metadata:
+  name: instrumentation
+  namespace: opentelemetry
+spec:
+  exporter:
+    endpoint: http://otel-collector.opentelemetry.svc.cluster.local:4317
+  propagators:
+    - tracecontext
+    - baggage
+  sampler:
+    type: always_on
+  resource:
+    addK8sUIDAttributes: true
+  java:
+    env:
+      - name: OTEL_LOGS_EXPORTER
+        value: otlp
+      - name: OTEL_INSTRUMENTATION_LOGBACK_APPENDER_ENABLED
+        value: "true"
