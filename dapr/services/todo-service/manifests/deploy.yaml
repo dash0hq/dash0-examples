@@ -23,7 +23,7 @@ spec:
         app: todo-service
     spec:
       containers:
-        - image: localhost:5001/todo-service:v1
+        - image: localhost:5001/todo-service:v1.1
           name: todo-service
           imagePullPolicy: Always
           ports:

@@ -23,7 +23,7 @@ spec:
         app: validation-service
     spec:
       containers:
-        - image: localhost:5001/validation-service:v1
+        - image: localhost:5001/validation-service:v1.1
           name: validation-service
           imagePullPolicy: Always
           ports:

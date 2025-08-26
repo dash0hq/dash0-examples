@@ -7,7 +7,7 @@ set -e
 
 REGISTRY_PORT="${REGISTRY_PORT:-5001}"
 SKIP_TESTS="${SKIP_TESTS:-true}"
-TAG="${TAG:-v1}"
+TAG="${TAG:-v1.1}"
 
 # Colors for output
 RED='\033[0;31m'

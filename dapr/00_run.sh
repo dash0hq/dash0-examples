@@ -75,7 +75,7 @@ fi
 
 # Step 4: Build images
 echo -e "\n${BLUE}Step 4/7: Building service images...${NC}"
-TAG=v1 ${SCRIPT_DIR}/scripts/04_build_images.sh
+TAG=v1.1 ${SCRIPT_DIR}/scripts/04_build_images.sh
 if [ $? -ne 0 ]; then
     echo -e "${RED}❌ Failed to build images${NC}"
     exit 1
