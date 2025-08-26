@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: frontend
+  name: frontend
+  namespace: dapr-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      annotations:
+        dapr.io/app-id: frontend
+        dapr.io/app-port: "80"
+        dapr.io/enabled: "true"
+        dapr.io/config: "tracing"
+        dapr.io/env: "OTEL_SERVICE_NAME=frontend-daprd"
+        instrumentation.opentelemetry.io/inject-java: "opentelemetry/instrumentation"
+      labels:
+        app: frontend
+    spec:
+      containers:
+        - image: localhost:5001/frontend:v1
+          name: frontend
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80
+              name: frontend
+          env:
+            - name: REACT_APP_DAPR_HTTP_PORT
+              value: "3500"
+            - name: REACT_APP_DAPR_HTTP_ENDPOINT
+              value: "http://localhost"
+            - name: OTEL_COLLECTOR_HOST
+              value: "otel-collector-opentelemetry-collector.opentelemetry.svc.cluster.local"
+            - name: OTEL_COLLECTOR_PORT
+              value: "4318"

@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: validation-service
+  name: validation-service
+  namespace: dapr-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: validation-service
+  template:
+    metadata:
+      annotations:
+        dapr.io/app-id: validation-service
+        dapr.io/app-port: "8081"
+        dapr.io/enabled: "true"
+        dapr.io/config: "tracing"
+        dapr.io/env: "OTEL_SERVICE_NAME=validation-service-daprd"
+        instrumentation.opentelemetry.io/inject-java: "opentelemetry/instrumentation"
+      labels:
+        app: validation-service
+    spec:
+      containers:
+        - image: localhost:5001/validation-service:v1
+          name: validation-service
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8081
+              name: http
+          env:
+            - name: SERVER_PORT
+              value: "8081"

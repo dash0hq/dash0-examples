@@ -1,0 +1,15 @@
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: todo-pubsub
+  namespace: dapr-demo
+spec:
+  type: pubsub.rabbitmq
+  version: v1
+  metadata:
+    - name: connectionString
+      value: "amqp://guest:guest@rabbitmq.dapr-demo.svc.cluster.local:5672"
+    - name: user
+      value: guest
+    - name: password
+      value: guest

@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: notification-service
+  name: notification-service
+  namespace: dapr-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: notification-service
+  template:
+    metadata:
+      annotations:
+        dapr.io/app-id: notification-service
+        dapr.io/app-port: "8082"
+        dapr.io/enabled: "true"
+        dapr.io/config: "tracing"
+        dapr.io/env: "OTEL_SERVICE_NAME=notification-service-daprd"
+        instrumentation.opentelemetry.io/inject-java: "opentelemetry/instrumentation"
+      labels:
+        app: notification-service
+    spec:
+      containers:
+        - image: localhost:5001/notification-service:v1
+          name: notification-service
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8082
+              name: http
+          env:
+            - name: SERVER_PORT
+              value: "8082"
