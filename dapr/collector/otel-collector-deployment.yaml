@@ -36,6 +36,10 @@ presets:
 
 config:
   receivers:
+    otlp:
+      protocols:
+        grpc: {}
+        http: {}
     prometheus:
       config:
         scrape_configs:
@@ -119,13 +123,18 @@ config:
       - health_check
     pipelines:
       logs:
+        receivers:
+          - otlp
         exporters:
           - otlp/dash0
       metrics:
         receivers:
+          - otlp
           - prometheus
         exporters:
           - otlp/dash0
       traces:
+        receivers:
+          - otlp
         exporters:
           - otlp/dash0
