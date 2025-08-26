@@ -39,9 +39,18 @@ registerInstrumentations({
   instrumentations: [
     new FetchInstrumentation({
       clearTimingResources: true,
+      propagateTraceHeaderCorsUrls: [/.*/], // Propagate trace headers to all URLs
+      applyCustomAttributesOnSpan: (span, request, response) => {
+        // Add custom attributes based on the URL
+        const url = request.url || '';
+        if (url.includes('/todos')) {
+          span.setAttribute('service.target', 'todo-service');
+        }
+      }
     }),
     new XMLHttpRequestInstrumentation({
       clearTimingResources: true,
+      propagateTraceHeaderCorsUrls: [/.*/], // Propagate trace headers to all URLs
     }),
   ],
 });

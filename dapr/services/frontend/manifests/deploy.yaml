@@ -23,7 +23,7 @@ spec:
         app: frontend
     spec:
       containers:
-        - image: localhost:5001/frontend:v1.1
+        - image: localhost:5001/frontend:v1.4
           name: frontend
           imagePullPolicy: Always
           ports:
