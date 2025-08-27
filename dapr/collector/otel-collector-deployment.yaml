@@ -1,7 +1,7 @@
 mode: deployment
 replicaCount: 1
 image:
-  repository: otel/opentelemetry-collector-k8s
+  repository: otel/opentelemetry-collector-contrib
 
 resources:
   limits:
@@ -40,6 +40,46 @@ config:
       protocols:
         grpc: {}
         http: {}
+    rabbitmq:
+      endpoint: http://rabbitmq.dapr-demo.svc.cluster.local:15672
+      username: guest
+      password: guest
+      collection_interval: 10s
+      metrics:
+        rabbitmq.node.disk_free:
+          enabled: true
+        rabbitmq.node.disk_free_limit:
+          enabled: true
+        rabbitmq.node.disk_free_alarm:
+          enabled: true
+        rabbitmq.node.mem_used:
+          enabled: true
+        rabbitmq.node.mem_limit:
+          enabled: true
+        rabbitmq.node.mem_alarm:
+          enabled: true
+        rabbitmq.node.fd_used:
+          enabled: true
+        rabbitmq.node.fd_total:
+          enabled: true
+        rabbitmq.node.sockets_used:
+          enabled: true
+        rabbitmq.node.sockets_total:
+          enabled: true
+        rabbitmq.node.proc_used:
+          enabled: true
+        rabbitmq.node.proc_total:
+          enabled: true
+        rabbitmq.node.disk_free_details.rate:
+          enabled: true
+        rabbitmq.node.fd_used_details.rate:
+          enabled: true
+        rabbitmq.node.mem_used_details.rate:
+          enabled: true
+        rabbitmq.node.proc_used_details.rate:
+          enabled: true
+        rabbitmq.node.sockets_used_details.rate:
+          enabled: true
     prometheus:
       config:
         scrape_configs:
@@ -131,6 +171,8 @@ config:
         receivers:
           - otlp
           - prometheus
+          - rabbitmq
+          - k8s_cluster
         exporters:
           - otlp/dash0
       traces:

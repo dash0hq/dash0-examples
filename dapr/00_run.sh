@@ -23,7 +23,7 @@ echo "  1. Setup Kind cluster with local registry"
 echo "  2. Install Dapr"
 echo "  3. Install OpenTelemetry (cert-manager, operator, collectors, instrumentation)"
 echo "  4. Build all service images"
-echo "  5. Deploy databases (PostgreSQL, RabbitMQ)"
+echo "  5. Deploy infrastructure (PostgreSQL, RabbitMQ cluster)"
 echo "  6. Deploy Dapr components"
 echo "  7. Deploy all services"
 echo ""
@@ -40,7 +40,7 @@ if [[ ! "$response" =~ ^[Yy]$ ]]; then
     echo "  ./scripts/02_install_dapr.sh            - Install Dapr"
     echo "  ./scripts/03_install_otel.sh            - Install OpenTelemetry stack"
     echo "  ./scripts/04_build_images.sh            - Build service images"
-    echo "  ./scripts/05_deploy_databases.sh        - Deploy databases"
+    echo "  ./scripts/05_deploy_infrastructure.sh   - Deploy infrastructure"
     echo "  ./scripts/06_deploy_dapr_components.sh  - Deploy Dapr components"
     echo "  ./scripts/07_deploy_services.sh         - Deploy services"
     exit 0
@@ -81,11 +81,11 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-# Step 5: Deploy databases
-echo -e "\n${BLUE}Step 5/7: Deploying databases...${NC}"
-${SCRIPT_DIR}/scripts/05_deploy_databases.sh
+# Step 5: Deploy infrastructure
+echo -e "\n${BLUE}Step 5/7: Deploying infrastructure...${NC}"
+${SCRIPT_DIR}/scripts/05_deploy_infrastructure.sh
 if [ $? -ne 0 ]; then
-    echo -e "${RED}❌ Failed to deploy databases${NC}"
+    echo -e "${RED}❌ Failed to deploy infrastructure${NC}"
     exit 1
 fi
 
