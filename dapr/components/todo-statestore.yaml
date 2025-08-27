@@ -8,7 +8,9 @@ spec:
   version: v1
   metadata:
     - name: connectionString
-      value: "host=postgresql.dapr-demo.svc.cluster.local user=postgres password=password port=5432 connect_timeout=10 database=dapr sslmode=disable"
+      secretKeyRef:
+        name: postgresql-credentials
+        key: connectionString
     - name: tableName
       value: "todos_state"
     - name: metadataTableName

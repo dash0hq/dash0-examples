@@ -36,9 +36,31 @@ metadata:
     name: dapr-demo
 EOF
 
-# Deploy PostgreSQL
-echo -e "\n${BLUE}Deploying PostgreSQL...${NC}"
-kubectl apply -f "${PROJECT_ROOT}/infrastructure/postgres/postgres.yaml"
+# Deploy PostgreSQL using CloudNativePG
+echo -e "\n${BLUE}Setting up PostgreSQL with CloudNativePG...${NC}"
+
+# Install CloudNativePG operator if not already installed
+if ! kubectl get deployment -n cnpg-system cnpg-controller-manager &>/dev/null; then
+    echo "Installing CloudNativePG operator..."
+    kubectl apply --server-side -f \
+      https://raw.githubusercontent.com/cloudnative-pg/cloudnative-pg/release-1.24/releases/cnpg-1.24.1.yaml
+    
+    echo -n "Waiting for CloudNativePG operator to be ready..."
+    kubectl wait --for=condition=Available \
+      --timeout=120s \
+      deployment/cnpg-controller-manager \
+      -n cnpg-system 2>/dev/null || {
+        echo -e "\n${YELLOW}⚠️  CloudNativePG operator is taking longer than expected to start${NC}"
+        echo "You can check the status with: kubectl get pods -n cnpg-system"
+    }
+    echo -e " ${GREEN}✓${NC}"
+else
+    echo "CloudNativePG operator already installed"
+fi
+
+# Deploy PostgreSQL cluster
+echo -e "\n${BLUE}Deploying PostgreSQL cluster...${NC}"
+kubectl apply -f "${PROJECT_ROOT}/infrastructure/postgres/cloudnative-pg-cluster.yaml"
 
 # Deploy RabbitMQ using Cluster Operator
 echo -e "\n${BLUE}Installing RabbitMQ Cluster Operator...${NC}"
@@ -58,9 +80,10 @@ kubectl apply -f "${PROJECT_ROOT}/infrastructure/rabbitmq/rabbitmq-cluster.yaml"
 # Wait for infrastructure to be ready
 echo -e "\n${YELLOW}Waiting for infrastructure components to be ready...${NC}"
 
-echo -n "Waiting for PostgreSQL..."
-kubectl wait --for=condition=ready pod -l app=postgres -n dapr-demo --timeout=120s 2>/dev/null || {
-    echo -e "\n${YELLOW}⚠️  PostgreSQL is taking longer than expected to start${NC}"
+echo -n "Waiting for PostgreSQL cluster..."
+kubectl wait --for=condition=Ready cluster/postgresql -n dapr-demo --timeout=180s 2>/dev/null || {
+    echo -e "\n${YELLOW}⚠️  PostgreSQL cluster is taking longer than expected to start${NC}"
+    echo "You can check the status with: kubectl get cluster -n dapr-demo"
 }
 echo -e " ${GREEN}✓${NC}"
 
@@ -77,7 +100,12 @@ echo "  - PostgreSQL (for todo state store)"
 echo "  - RabbitMQ cluster (for pub/sub messaging)"
 echo ""
 echo "Infrastructure status:"
-kubectl get pods -n dapr-demo -l 'app in (postgres)' 2>/dev/null
+echo "PostgreSQL:"
+kubectl get cluster -n dapr-demo 2>/dev/null
+kubectl get pods -n dapr-demo -l 'cnpg.io/cluster=postgresql' 2>/dev/null
+echo ""
+echo "RabbitMQ:"
+kubectl get rabbitmqcluster -n dapr-demo 2>/dev/null
 kubectl get pods -n dapr-demo -l 'app.kubernetes.io/name=rabbitmq' 2>/dev/null
 echo ""
 echo "RabbitMQ Management UI will be available at: http://localhost:31672"

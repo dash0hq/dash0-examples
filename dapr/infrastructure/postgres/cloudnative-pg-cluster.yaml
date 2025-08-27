@@ -1,0 +1,152 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: postgresql
+  namespace: dapr-demo
+spec:
+  # Single instance for demo (can be increased for HA)
+  instances: 1
+  
+  # PostgreSQL version
+  imageName: ghcr.io/cloudnative-pg/postgresql:16.4
+  
+  # Database initialization
+  bootstrap:
+    initdb:
+      database: dapr
+      owner: postgres
+      secret:
+        name: postgresql-credentials
+      postInitApplicationSQL:
+        - CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
+  
+  # PostgreSQL configuration
+  postgresql:
+    shared_preload_libraries:
+      - "pg_stat_statements"
+    parameters:
+      # Memory settings
+      shared_buffers: "256MB"
+      effective_cache_size: "1GB"
+      
+      # pg_stat_statements configuration
+      "pg_stat_statements.max": "10000"
+      "pg_stat_statements.track": "all"
+      track_io_timing: "on"
+      
+      # Connection settings
+      max_connections: "100"
+      
+      # Checkpoint settings
+      checkpoint_completion_target: "0.9"
+      
+      # WAL settings
+      wal_level: "replica"
+      max_wal_size: "1GB"
+      min_wal_size: "80MB"
+      
+      # Autovacuum settings
+      autovacuum: "on"
+      autovacuum_max_workers: "3"
+      
+      # Logging
+      log_statement: "all"
+      log_duration: "off"
+      log_min_duration_statement: "100ms"
+  
+  # Storage configuration
+  storage:
+    size: 5Gi
+    storageClass: standard
+  
+  # Resources
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "256Mi"
+    limits:
+      cpu: "500m"
+      memory: "1Gi"
+  
+  # Monitoring - exposes metrics on port 9187
+  monitoring:
+    customQueriesConfigMap:
+      - name: postgresql-monitoring-queries
+        key: queries.yaml
+
+---
+
+# Secret for PostgreSQL credentials
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgresql-credentials
+  namespace: dapr-demo
+type: Opaque
+stringData:
+  username: postgres
+  password: password
+  connectionString: "host=postgresql.dapr-demo.svc.cluster.local user=postgres password=password port=5432 connect_timeout=10 database=dapr sslmode=disable"
+
+---
+
+# ConfigMap for custom monitoring queries (optional)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgresql-monitoring-queries
+  namespace: dapr-demo
+data:
+  queries.yaml: |
+    pg_stat_statements:
+      query: |
+        SELECT
+          queryid::text as queryid,
+          query,
+          calls,
+          total_exec_time as total_time_ms,
+          mean_exec_time as mean_time_ms,
+          rows
+        FROM pg_stat_statements
+        WHERE query !~ '^(SELECT|INSERT|UPDATE|DELETE).*pg_'
+        ORDER BY total_exec_time DESC
+        LIMIT 20
+      metrics:
+        - queryid:
+            usage: "LABEL"
+            description: "Query ID"
+        - query:
+            usage: "LABEL"
+            description: "Query text"
+        - calls:
+            usage: "GAUGE"
+            description: "Number of times executed"
+        - total_time_ms:
+            usage: "GAUGE"
+            description: "Total time spent in milliseconds"
+        - mean_time_ms:
+            usage: "GAUGE"
+            description: "Mean execution time in milliseconds"
+        - rows:
+            usage: "GAUGE"
+            description: "Total rows returned"
+
+---
+
+# Service for application access (keeps same name as before)
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgresql
+  namespace: dapr-demo
+  labels:
+    app: postgresql
+spec:
+  type: ClusterIP
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
+  selector:
+    cnpg.io/cluster: postgresql
+    role: primary

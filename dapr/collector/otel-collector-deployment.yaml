@@ -25,6 +25,16 @@ extraEnvs:
       secretKeyRef:
         name: dash0-secrets
         key: dash0-grpc-port
+  - name: POSTGRES_USERNAME
+    valueFrom:
+      secretKeyRef:
+        name: postgresql-credentials
+        key: username
+  - name: POSTGRES_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: postgresql-credentials
+        key: password
 
 presets:
   clusterMetrics:
@@ -40,6 +50,19 @@ config:
       protocols:
         grpc: {}
         http: {}
+    postgresql:
+      endpoint: postgresql.dapr-demo.svc.cluster.local:5432
+      databases:
+        - dapr
+      username: ${env:POSTGRES_USERNAME}
+      password: ${env:POSTGRES_PASSWORD}
+      collection_interval: 10s
+      tls:
+        insecure: true
+        insecure_skip_verify: true
+      # Enable collection of query performance metrics
+      # Requires pg_stat_statements extension to be enabled in PostgreSQL
+      initial_delay: 1s
     rabbitmq:
       endpoint: http://rabbitmq.dapr-demo.svc.cluster.local:15672
       username: guest
@@ -171,6 +194,7 @@ config:
         receivers:
           - otlp
           - prometheus
+          - postgresql
           - rabbitmq
           - k8s_cluster
         exporters:
