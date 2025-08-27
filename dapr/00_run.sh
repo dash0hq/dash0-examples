@@ -21,9 +21,9 @@ echo ""
 echo "This script will:"
 echo "  1. Setup Kind cluster with local registry"
 echo "  2. Install Dapr"
-echo "  3. Install OpenTelemetry (cert-manager, operator, collectors, instrumentation)"
-echo "  4. Build all service images"
-echo "  5. Deploy infrastructure (PostgreSQL, RabbitMQ cluster)"
+echo "  3. Build all service images"
+echo "  4. Deploy infrastructure (PostgreSQL, RabbitMQ cluster)"
+echo "  5. Install OpenTelemetry (cert-manager, operator, collectors, instrumentation)"
 echo "  6. Deploy Dapr components"
 echo "  7. Deploy all services"
 echo ""
@@ -38,9 +38,9 @@ if [[ ! "$response" =~ ^[Yy]$ ]]; then
     echo "You can run individual steps:"
     echo "  ./scripts/01_setup_kind.sh              - Setup Kind cluster"
     echo "  ./scripts/02_install_dapr.sh            - Install Dapr"
-    echo "  ./scripts/03_install_otel.sh            - Install OpenTelemetry stack"
     echo "  ./scripts/04_build_images.sh            - Build service images"
     echo "  ./scripts/05_deploy_infrastructure.sh   - Deploy infrastructure"
+    echo "  ./scripts/03_install_otel.sh            - Install OpenTelemetry stack"
     echo "  ./scripts/06_deploy_dapr_components.sh  - Deploy Dapr components"
     echo "  ./scripts/07_deploy_services.sh         - Deploy services"
     exit 0
@@ -65,27 +65,27 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-# Step 3: Install OpenTelemetry
-echo -e "\n${BLUE}Step 3/7: Installing OpenTelemetry stack...${NC}"
-${SCRIPT_DIR}/scripts/03_install_otel.sh
-if [ $? -ne 0 ]; then
-    echo -e "${RED}❌ Failed to install OpenTelemetry${NC}"
-    exit 1
-fi
-
-# Step 4: Build images
-echo -e "\n${BLUE}Step 4/7: Building service images...${NC}"
-TAG=v1.1 ${SCRIPT_DIR}/scripts/04_build_images.sh
+# Step 3: Build images
+echo -e "\n${BLUE}Step 3/7: Building service images...${NC}"
+TAG=v1 ${SCRIPT_DIR}/scripts/04_build_images.sh
 if [ $? -ne 0 ]; then
     echo -e "${RED}❌ Failed to build images${NC}"
     exit 1
 fi
 
-# Step 5: Deploy infrastructure
-echo -e "\n${BLUE}Step 5/7: Deploying infrastructure...${NC}"
+# Step 4: Deploy infrastructure
+echo -e "\n${BLUE}Step 4/7: Deploying infrastructure...${NC}"
 ${SCRIPT_DIR}/scripts/05_deploy_infrastructure.sh
 if [ $? -ne 0 ]; then
     echo -e "${RED}❌ Failed to deploy infrastructure${NC}"
+    exit 1
+fi
+
+# Step 5: Install OpenTelemetry
+echo -e "\n${BLUE}Step 5/7: Installing OpenTelemetry stack...${NC}"
+${SCRIPT_DIR}/scripts/03_install_otel.sh
+if [ $? -ne 0 ]; then
+    echo -e "${RED}❌ Failed to install OpenTelemetry${NC}"
     exit 1
 fi
 

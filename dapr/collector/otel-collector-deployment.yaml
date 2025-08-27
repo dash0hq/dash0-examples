@@ -25,16 +25,6 @@ extraEnvs:
       secretKeyRef:
         name: dash0-secrets
         key: dash0-grpc-port
-  - name: POSTGRES_USERNAME
-    valueFrom:
-      secretKeyRef:
-        name: postgresql-credentials
-        key: username
-  - name: POSTGRES_PASSWORD
-    valueFrom:
-      secretKeyRef:
-        name: postgresql-credentials
-        key: password
 
 presets:
   clusterMetrics:
@@ -54,8 +44,8 @@ config:
       endpoint: postgresql.dapr-demo.svc.cluster.local:5432
       databases:
         - dapr
-      username: ${env:POSTGRES_USERNAME}
-      password: ${env:POSTGRES_PASSWORD}
+      username: dapruser
+      password: daprpassword
       collection_interval: 10s
       tls:
         insecure: true

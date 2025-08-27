@@ -23,7 +23,7 @@ spec:
         app: notification-service
     spec:
       containers:
-        - image: localhost:5001/notification-service:v1.1
+        - image: localhost:5001/notification-service:v1
           name: notification-service
           imagePullPolicy: Always
           ports:

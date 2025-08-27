@@ -10,15 +10,19 @@ spec:
   # PostgreSQL version
   imageName: ghcr.io/cloudnative-pg/postgresql:16.4
   
+  # Enable superuser access (required for external connections with postgres user)
+  enableSuperuserAccess: true
+  
   # Database initialization
   bootstrap:
     initdb:
       database: dapr
       owner: postgres
-      secret:
-        name: postgresql-credentials
       postInitApplicationSQL:
         - CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
+        - CREATE USER dapruser WITH PASSWORD 'daprpassword';
+        - GRANT ALL PRIVILEGES ON DATABASE dapr TO dapruser;
+        - GRANT ALL ON SCHEMA public TO dapruser;
   
   # PostgreSQL configuration
   postgresql:
@@ -73,20 +77,6 @@ spec:
     customQueriesConfigMap:
       - name: postgresql-monitoring-queries
         key: queries.yaml
-
----
-
-# Secret for PostgreSQL credentials
-apiVersion: v1
-kind: Secret
-metadata:
-  name: postgresql-credentials
-  namespace: dapr-demo
-type: Opaque
-stringData:
-  username: postgres
-  password: password
-  connectionString: "host=postgresql.dapr-demo.svc.cluster.local user=postgres password=password port=5432 connect_timeout=10 database=dapr sslmode=disable"
 
 ---
 

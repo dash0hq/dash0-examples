@@ -42,8 +42,29 @@ echo -e "\n${BLUE}Setting up PostgreSQL with CloudNativePG...${NC}"
 # Install CloudNativePG operator if not already installed
 if ! kubectl get deployment -n cnpg-system cnpg-controller-manager &>/dev/null; then
     echo "Installing CloudNativePG operator..."
-    kubectl apply --server-side -f \
-      https://raw.githubusercontent.com/cloudnative-pg/cloudnative-pg/release-1.24/releases/cnpg-1.24.1.yaml
+    
+    # Download with retry logic
+    CNPG_URL="https://raw.githubusercontent.com/cloudnative-pg/cloudnative-pg/release-1.24/releases/cnpg-1.24.1.yaml"
+    echo "Downloading CloudNativePG operator from GitHub..."
+    
+    for attempt in 1 2 3; do
+        echo "Download attempt $attempt/3..."
+        if kubectl apply --server-side -f "$CNPG_URL"; then
+            echo "✓ Successfully downloaded and applied CloudNativePG operator"
+            break
+        else
+            if [ $attempt -eq 3 ]; then
+                echo -e "${RED}❌ Failed to download CloudNativePG operator after 3 attempts${NC}"
+                echo "Please check your internet connection and try again"
+                echo "You can also download manually:"
+                echo "  curl -L $CNPG_URL -o cnpg-1.24.1.yaml"
+                echo "  kubectl apply --server-side -f cnpg-1.24.1.yaml"
+                exit 1
+            fi
+            echo -e "${YELLOW}⚠️  Download failed, retrying in 5 seconds...${NC}"
+            sleep 5
+        fi
+    done
     
     echo -n "Waiting for CloudNativePG operator to be ready..."
     kubectl wait --for=condition=Available \
@@ -68,7 +89,29 @@ echo -e "\n${BLUE}Installing RabbitMQ Cluster Operator...${NC}"
 if kubectl get deployment -n rabbitmq-system rabbitmq-cluster-operator &>/dev/null; then
     echo "RabbitMQ Cluster Operator already installed"
 else
-    kubectl apply -f "https://github.com/rabbitmq/cluster-operator/releases/latest/download/cluster-operator.yml"
+    # Download with retry logic
+    OPERATOR_URL="https://github.com/rabbitmq/cluster-operator/releases/latest/download/cluster-operator.yml"
+    echo "Downloading RabbitMQ Cluster Operator from GitHub..."
+    
+    for attempt in 1 2 3; do
+        echo "Download attempt $attempt/3..."
+        if kubectl apply -f "$OPERATOR_URL"; then
+            echo "✓ Successfully downloaded and applied operator manifest"
+            break
+        else
+            if [ $attempt -eq 3 ]; then
+                echo -e "${RED}❌ Failed to download RabbitMQ operator after 3 attempts${NC}"
+                echo "Please check your internet connection and try again"
+                echo "You can also download manually:"
+                echo "  curl -L $OPERATOR_URL -o cluster-operator.yml"
+                echo "  kubectl apply -f cluster-operator.yml"
+                exit 1
+            fi
+            echo -e "${YELLOW}⚠️  Download failed, retrying in 5 seconds...${NC}"
+            sleep 5
+        fi
+    done
+    
     echo -n "Waiting for operator to be ready..."
     kubectl wait --for=condition=available --timeout=120s deployment/rabbitmq-cluster-operator -n rabbitmq-system
     echo -e " ${GREEN}✓${NC}"
