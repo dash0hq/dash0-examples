@@ -159,6 +159,13 @@ config:
                 source_labels:
                   - __meta_kubernetes_pod_ip
                 target_label: __address__  
+  processors:
+    resource:
+      attributes:
+        - key: service.namespace
+          action: insert
+          from_attribute: k8s.namespace.name
+
   exporters:
     otlp/dash0:
       auth:
@@ -178,6 +185,8 @@ config:
       logs:
         receivers:
           - otlp
+        processors:
+          - resource
         exporters:
           - otlp/dash0
       metrics:
@@ -187,10 +196,14 @@ config:
           - postgresql
           - rabbitmq
           - k8s_cluster
+        processors:
+          - resource
         exporters:
           - otlp/dash0
       traces:
         receivers:
           - otlp
+        processors:
+          - resource
         exporters:
           - otlp/dash0
