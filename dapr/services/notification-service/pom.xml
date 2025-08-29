@@ -80,6 +80,7 @@
         <groupId>io.dapr.spring</groupId>
         <artifactId>dapr-spring-boot-starter-test</artifactId>
         <version>${dapr.version}</version>
+        <scope>test</scope>
     </dependency>
 
   </dependencies>
