@@ -23,7 +23,6 @@
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
         <java.version>17</java.version>
-        <dapr.version>1.10.0</dapr.version>
         <jackson.version>2.15.2</jackson.version>
     </properties>
 
@@ -43,20 +42,7 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
-
-        <!-- Dapr SDK -->
-        <dependency>
-            <groupId>io.dapr</groupId>
-            <artifactId>dapr-sdk</artifactId>
-            <version>${dapr.version}</version>
-        </dependency>
-        
-        <dependency>
-            <groupId>io.dapr</groupId>
-            <artifactId>dapr-sdk-springboot</artifactId>
-            <version>${dapr.version}</version>
-        </dependency>
-
+ 
         <!-- Jackson for JSON processing -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
