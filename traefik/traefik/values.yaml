@@ -1,0 +1,45 @@
+# Traefik Helm Chart Configuration
+
+# Use hostPort for Kind
+ports:
+  web:
+    hostPort: 80
+  websecure:
+    hostPort: 443
+  traefik:
+    hostPort: 8080
+
+# Node selector for ingress-ready node
+nodeSelector:
+  ingress-ready: "true"
+
+# Tolerations for control-plane
+tolerations:
+  - key: node-role.kubernetes.io/control-plane
+    operator: Equal
+    effect: NoSchedule
+
+# Enable dashboard
+ingressRoute:
+  dashboard:
+    enabled: true
+
+# Additional arguments for dashboard and OTLP
+additionalArguments:
+  - "--api.insecure=true"
+  - "--metrics.otlp=true"
+  - "--metrics.otlp.http.endpoint=http://otel-collector-opentelemetry-collector.opentelemetry:4318/v1/metrics"
+  - "--metrics.otlp.pushInterval=10s"
+  - "--tracing.otlp=true"
+  - "--tracing.otlp.http.endpoint=http://otel-collector-opentelemetry-collector.opentelemetry:4318/v1/traces"
+  - "--accesslog=true"
+  - "--accesslog.format=json"
+
+# Environment variables to fix OpenTelemetry resource detection
+env:
+  - name: USER
+    value: "traefik"
+
+# Disable Prometheus metrics (using OTLP instead)
+metrics:
+  prometheus: null
