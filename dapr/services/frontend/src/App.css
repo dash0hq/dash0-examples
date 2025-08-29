@@ -1,0 +1,507 @@
+body {
+  background: radial-gradient(circle at center, #f9503c 0%, #fa9266 100%);
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+}
+
+.App {
+  text-align: center;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  min-height: 100vh;
+}
+
+.App-header {
+  background: linear-gradient(135deg, rgba(33, 33, 33, 0.95) 0%, rgba(33, 33, 33, 0.8) 100%);
+  color: white;
+  padding: 3rem 2rem;
+  border-radius: 12px;
+  margin-bottom: 2rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+}
+
+.logo-section {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.App-header h1 {
+  margin: 0 0 0.5rem 0;
+  font-size: 2.8rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.otel-logo {
+  height: 6.5rem;
+  width: auto;
+}
+
+.dapr-logo {
+  height: 6.5rem;
+  width: auto;
+}
+
+.App-header p {
+  margin: 0;
+  opacity: 0.8;
+  font-size: 1.2rem;
+  color: #e0e0e0;
+  font-weight: 300;
+}
+
+.App-main {
+  background: rgba(33, 33, 33, 0.95);
+  border-radius: 12px;
+  padding: 2.5rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  color: white;
+}
+
+.error {
+  background: rgba(220, 53, 69, 0.1);
+  color: #ff6b7a;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  border: 1px solid rgba(220, 53, 69, 0.2);
+  backdrop-filter: blur(5px);
+}
+
+.backend-selectors {
+  display: flex;
+  gap: 2rem;
+  justify-content: center;
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+}
+
+.selector-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.selector-group label {
+  color: #e0e0e0;
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-align: center;
+}
+
+.selector-group select {
+  padding: 0.75rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  color: white;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 140px;
+}
+
+.selector-group select:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
+}
+
+.selector-group select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.selector-group select option {
+  background: #333;
+  color: white;
+}
+
+.form-group {
+  display: flex;
+  gap: 1rem;
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.todo-form {
+  margin-bottom: 1rem;
+}
+
+.todo-input {
+  flex: 1;
+  padding: 0.875rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  font-size: 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  color: white;
+  transition: all 0.2s ease;
+}
+
+.add-button {
+  padding: 0.875rem 1.5rem;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+}
+
+.todo-form input {
+  flex: 1;
+  padding: 0.875rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  font-size: 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  color: white;
+  transition: all 0.2s ease;
+}
+
+.todo-form input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.todo-input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.todo-input:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
+}
+
+.add-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #5b5ff1 0%, #7c3aed 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+}
+
+.add-button:disabled {
+  background: rgba(255, 255, 255, 0.1);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.todo-form input:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
+}
+
+.todo-form button {
+  padding: 0.875rem 1.5rem;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+}
+
+.todo-form button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #5b5ff1 0%, #7c3aed 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+}
+
+.todo-form button:disabled {
+  background: rgba(255, 255, 255, 0.1);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.todos-container {
+  margin-bottom: 2rem;
+}
+
+.todos-container h2 {
+  color: #e0e0e0;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  font-size: 1.5rem;
+}
+
+.service-info {
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+  font-style: italic;
+}
+
+.validation-status {
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  font-weight: 500;
+  text-align: center;
+}
+
+.validation-status.success {
+  background: rgba(34, 197, 94, 0.1);
+  color: #4ade80;
+  border: 1px solid rgba(34, 197, 94, 0.2);
+}
+
+.validation-status.info {
+  background: rgba(59, 130, 246, 0.1);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.no-todos {
+  color: rgba(255, 255, 255, 0.6);
+  font-style: italic;
+  padding: 2rem;
+  font-size: 1.1rem;
+}
+
+/* Error Display */
+.error-message {
+  background: rgba(220, 53, 69, 0.1);
+  color: #ff6b7a;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-top: 1rem;
+  border: 1px solid rgba(220, 53, 69, 0.2);
+  backdrop-filter: blur(5px);
+  text-align: center;
+}
+
+/* Todo List Container */
+.todo-list-container {
+  margin-top: 2rem;
+}
+
+.todo-list-container h2 {
+  color: #e0e0e0;
+  margin-bottom: 1rem;
+  font-weight: 600;
+  font-size: 1.5rem;
+}
+
+.loading-message, .empty-message {
+  color: rgba(255, 255, 255, 0.6);
+  font-style: italic;
+  padding: 2rem;
+  font-size: 1.1rem;
+  text-align: center;
+}
+
+/* Todo List */
+.todo-list {
+  list-style: none;
+  padding: 0;
+  max-width: 600px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.todos-list {
+  list-style: none;
+  padding: 0;
+  max-width: 600px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.todo-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(5px);
+  transition: all 0.2s ease;
+}
+
+.todo-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+}
+
+.todo-content {
+  flex: 1;
+  text-align: left;
+}
+
+.todo-name {
+  display: block;
+  font-size: 1rem;
+  color: white;
+  font-weight: 400;
+  margin-bottom: 0.5rem;
+}
+
+.todo-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.todo-date, .todo-id {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.delete-button {
+  background: linear-gradient(135deg, #f9503c 0%, #fa9266 100%);
+  color: black;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(249, 80, 60, 0.3);
+  min-width: 60px;
+}
+
+.delete-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #e8472e 0%, #f08455 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(249, 80, 60, 0.4);
+}
+
+.delete-button:disabled {
+  background: rgba(255, 255, 255, 0.1);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.delete-btn {
+  background: linear-gradient(135deg, #f9503c 0%, #fa9266 100%);
+  color: black;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(249, 80, 60, 0.3);
+}
+
+.delete-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #e8472e 0%, #f08455 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(249, 80, 60, 0.4);
+}
+
+.delete-btn:disabled {
+  background: rgba(255, 255, 255, 0.1);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.demo-actions {
+  background: rgba(255, 255, 255, 0.03);
+  padding: 2rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  margin-top: 1rem;
+}
+
+.demo-actions h3 {
+  margin: 0 0 1.5rem 0;
+  color: #e0e0e0;
+  font-weight: 600;
+  font-size: 1.2rem;
+}
+
+.demo-actions button {
+  margin: 0 0.75rem 0.75rem 0;
+  padding: 0.875rem 1.25rem;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+
+.demo-actions button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+}
+
+.demo-actions button:nth-child(2) {
+  background: linear-gradient(135deg, #f9503c 0%, #fa9266 100%);
+  color: black;
+  box-shadow: 0 2px 8px rgba(249, 80, 60, 0.3);
+}
+
+.demo-actions button:nth-child(2):hover:not(:disabled) {
+  background: linear-gradient(135deg, #e8472e 0%, #f08455 100%);
+  box-shadow: 0 4px 12px rgba(249, 80, 60, 0.4);
+}
+
+.app-footer {
+  text-align: center;
+  padding: 1rem 2rem;
+  margin-top: 1.5rem;
+  color: black;
+  font-size: 0.9rem;
+}
+
+.app-footer p {
+  margin: 0;
+  font-weight: 300;
+}
+
+.dash0-logo {
+  height: 1.2rem;
+  width: auto;
+  margin-left: 0.5rem;
+  vertical-align: middle;
+  opacity: 0.8;
+  transition: opacity 0.2s ease;
+}
+
+.dash0-logo:hover {
+  opacity: 1;
+}

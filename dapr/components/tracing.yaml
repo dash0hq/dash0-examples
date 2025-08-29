@@ -1,0 +1,18 @@
+apiVersion: dapr.io/v1alpha1
+kind: Configuration
+metadata:
+  name: tracing
+  namespace: dapr-demo
+spec:
+  tracing:
+    samplingRate: "1"
+    otel:
+      endpointAddress: "otel-collector-opentelemetry-collector.opentelemetry.svc.cluster.local:4317"
+      isSecure: false
+      protocol: grpc
+  metric:
+    enabled: true
+    recordErrorCodes: true
+  features:
+    - name: proxy.tracing
+      enabled: true

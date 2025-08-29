@@ -1,0 +1,42 @@
+# Dapr State Store Component
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: todo-statestore
+spec:
+  type: state.redis
+  version: v1
+  metadata:
+  - name: redisHost
+    value: redis:6379
+  - name: redisPassword
+    value: ""
+  - name: actorStateStore
+    value: "true"
+---
+# Dapr PubSub Component
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: todo-pubsub
+spec:
+  type: pubsub.redis
+  version: v1
+  metadata:
+  - name: redisHost
+    value: redis:6379
+  - name: redisPassword
+    value: ""
+---
+# Dapr Configuration for tracing
+apiVersion: dapr.io/v1alpha1
+kind: Configuration
+metadata:
+  name: tracing
+spec:
+  tracing:
+    samplingRate: "1"
+    otel:
+      endpointAddress: "http://jaeger-collector:14268/api/traces"
+  metric:
+    enabled: true

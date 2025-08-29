@@ -1,0 +1,76 @@
+# Maven
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# Gradle
+.gradle
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+# IDE
+.idea/
+*.iws
+*.iml
+*.ipr
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Environment
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Build outputs
+dist/
+out/
+*.class
+*.jar
+*.war
+*.ear
+
+# Logs
+logs/
+*.log
+
+# OS
+Thumbs.db
+
+# Kubernetes
+*.kubeconfig
+
+# React build
+services/frontend/build/
+
+# Maven wrapper
+.mvn/timing.properties
+.mvn/.gitignore
+
+# VS Code
+.history/
+*.code-workspace
+
+# JetBrains
+out/
+.idea_modules/
+*.iml
+
+# Eclipse
+.settings/
+.project
+.classpath
+.factorypath.DS_Store

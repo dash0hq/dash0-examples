@@ -1,0 +1,72 @@
+apiVersion: rabbitmq.com/v1beta1
+kind: RabbitmqCluster
+metadata:
+  name: rabbitmq
+  namespace: dapr-demo
+spec:
+  # Single replica to match your current setup
+  replicas: 1
+  
+  # Image configuration
+  image: rabbitmq:3.13-management
+  
+  # Resource limits matching your deployment
+  resources:
+    limits:
+      cpu: "500m"
+      memory: "1Gi"
+    requests:
+      cpu: "100m"
+      memory: "256Mi"
+  
+  # Persistence configuration matching your PVC
+  persistence:
+    storageClassName: standard
+    storage: "2Gi"
+  
+  # RabbitMQ configuration
+  rabbitmq:
+    additionalPlugins:
+      - rabbitmq_management
+      - rabbitmq_prometheus
+      - rabbitmq_amqp1_0
+    
+    additionalConfig: |
+      # Memory configuration
+      vm_memory_high_watermark.relative = 0.6
+      
+      # Disk free space  
+      disk_free_limit.relative = 2.0
+      
+      # Allow guest user from any host (required for Dapr)
+      loopback_users.guest = false
+      
+      # Default user
+      default_user = guest
+      default_pass = guest
+  
+  # Service configuration
+  service:
+    type: ClusterIP
+    annotations: {}
+
+---
+
+# NodePort service for management UI access (matching port 31672)
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq-management
+  namespace: dapr-demo
+  labels:
+    app.kubernetes.io/name: rabbitmq
+spec:
+  type: NodePort
+  ports:
+    - name: management
+      port: 15672
+      targetPort: 15672
+      nodePort: 31672
+  selector:
+    app.kubernetes.io/component: rabbitmq
+    app.kubernetes.io/name: rabbitmq
