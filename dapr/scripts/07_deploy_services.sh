@@ -34,7 +34,7 @@ fi
 # Check if images exist in registry
 REGISTRY_PORT="${REGISTRY_PORT:-5001}"
 echo -e "${YELLOW}Checking for required images...${NC}"
-required_images=("todo-service" "validation-service" "notification-service" "todo-frontend")
+required_images=("todo-service" "validation-service" "notification-service" "frontend")
 missing_images=()
 
 for image in "${required_images[@]}"; do
