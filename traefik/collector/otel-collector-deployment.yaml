@@ -1,0 +1,76 @@
+mode: deployment
+replicaCount: 1
+image:
+  repository: otel/opentelemetry-collector-contrib
+
+resources:
+  limits:
+    memory: 512Mi
+  requests:
+    memory: 256Mi
+
+extraEnvs:
+  - name: DASH0_AUTH_TOKEN
+    valueFrom:
+      secretKeyRef:
+        name: dash0-secrets
+        key: dash0-authorization-token
+  - name: DASH0_ENDPOINT_OTLP_GRPC_HOSTNAME
+    valueFrom:
+      secretKeyRef:
+        name: dash0-secrets
+        key: dash0-grpc-hostname
+  - name: DASH0_ENDPOINT_OTLP_GRPC_PORT
+    valueFrom:
+      secretKeyRef:
+        name: dash0-secrets
+        key: dash0-grpc-port
+
+presets:
+  clusterMetrics:
+    enabled: true
+  kubernetesEvents:
+    enabled: true
+  kubernetesAttributes:
+    enabled: true
+
+config:
+  receivers:
+    otlp:
+      protocols:
+        grpc: {}
+        http: {}
+
+  exporters:
+    otlp/dash0:
+      auth:
+        authenticator: bearertokenauth/dash0
+      endpoint: ${env:DASH0_ENDPOINT_OTLP_GRPC_HOSTNAME}:${env:DASH0_ENDPOINT_OTLP_GRPC_PORT}
+
+  extensions:
+    bearertokenauth/dash0:
+      scheme: Bearer
+      token: ${env:DASH0_AUTH_TOKEN}
+
+  service:
+    extensions:
+      - bearertokenauth/dash0
+      - health_check
+    pipelines:
+      logs:
+        receivers:
+          - otlp
+        exporters:
+          - otlp/dash0
+      metrics:
+        receivers:
+          - otlp
+          - prometheus
+          - k8s_cluster
+        exporters:
+          - otlp/dash0
+      traces:
+        receivers:
+          - otlp
+        exporters:
+          - otlp/dash0
