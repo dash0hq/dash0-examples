@@ -32,6 +32,15 @@ A complete Traefik ingress controller demo with full observability using OpenTel
 
 **Technologies**: Traefik, Kubernetes (Kind), OpenTelemetry, Node.js, Helm
 
+### [Host Metrics Collection](./hostmetrics/)
+Demonstrates collecting system-level metrics from Kubernetes nodes using the OpenTelemetry Collector's hostmetrics receiver:
+- 2-node Kind cluster setup
+- OpenTelemetry Collector DaemonSet on all nodes
+- Comprehensive host metrics collection (CPU, memory, disk, network, processes)
+- Direct export to Dash0 via OTLP
+
+**Technologies**: OpenTelemetry Collector, Kind, Kubernetes, Helm
+
 ## Getting Started
 
 1. **Prerequisites**: Ensure you have Docker installed and a Dash0 account
