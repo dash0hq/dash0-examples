@@ -24,22 +24,34 @@ ingressRoute:
   dashboard:
     enabled: true
 
-# Additional arguments for dashboard and OTLP
-additionalArguments:
-  - "--api.insecure=true"
-  - "--metrics.otlp=true"
-  - "--metrics.otlp.http.endpoint=http://otel-collector-opentelemetry-collector.opentelemetry:4318/v1/metrics"
-  - "--metrics.otlp.pushInterval=10s"
-  - "--tracing.otlp=true"
-  - "--tracing.otlp.http.endpoint=http://otel-collector-opentelemetry-collector.opentelemetry:4318/v1/traces"
-  - "--accesslog=true"
-  - "--accesslog.format=json"
+# API configuration
+api:
+  insecure: true
+
+# Access logs configuration
+logs:
+  access:
+    enabled: true
+    format: json
+
+# Metrics configuration
+metrics:
+  otlp:
+    enabled: true
+    http:
+      endpoint: http://otel-collector-opentelemetry-collector.opentelemetry:4318/v1/metrics
+    pushInterval: 10s
+  # Disable Prometheus metrics (using OTLP instead)
+  prometheus: null
+
+# Tracing configuration
+tracing:
+  otlp:
+    enabled: true
+    http:
+      endpoint: http://otel-collector-opentelemetry-collector.opentelemetry:4318/v1/traces
 
 # Environment variables to fix OpenTelemetry resource detection
 env:
   - name: USER
     value: "traefik"
-
-# Disable Prometheus metrics (using OTLP instead)
-metrics:
-  prometheus: null
