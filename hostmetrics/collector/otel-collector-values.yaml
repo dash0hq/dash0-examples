@@ -20,8 +20,17 @@ extraEnvs:
         name: dash0-secrets
         key: dash0-grpc-port
 
-# Need host network to collect host metrics
+# Host network for complete network interface metrics
 hostNetwork: true
+
+# Security context for accessing host metrics
+securityContext:
+  runAsUser: 0      # Required to read /proc files of other processes
+  runAsGroup: 0
+  capabilities:
+    add:
+      - SYS_PTRACE      # Required for process metrics
+      - DAC_READ_SEARCH # Required for reading /proc files
 
 # Run on all nodes including control-plane
 tolerations:
@@ -62,9 +71,16 @@ extraVolumes:
     hostPath:
       path: /
       type: Directory
+  - name: passwd
+    hostPath:
+      path: /etc/passwd
+      type: FileOrCreate
 
 extraVolumeMounts:
   - name: hostfs
     mountPath: /hostfs
     readOnly: true
     mountPropagation: HostToContainer
+  - name: passwd
+    mountPath: /etc/passwd
+    readOnly: true
