@@ -39,7 +39,8 @@ metrics:
   otlp:
     enabled: true
     http:
-      endpoint: http://otel-collector-opentelemetry-collector.opentelemetry:4318/v1/metrics
+      enabled: true
+      endpoint: http://otel-collector-opentelemetry-collector.opentelemetry.svc.cluster.local:4318/v1/metrics
     pushInterval: 10s
   # Disable Prometheus metrics (using OTLP instead)
   prometheus: null
@@ -49,7 +50,8 @@ tracing:
   otlp:
     enabled: true
     http:
-      endpoint: http://otel-collector-opentelemetry-collector.opentelemetry:4318/v1/traces
+      enabled: true
+      endpoint: http://otel-collector-opentelemetry-collector.opentelemetry.svc.cluster.local:4318/v1/traces
 
 # Environment variables to fix OpenTelemetry resource detection
 env:
