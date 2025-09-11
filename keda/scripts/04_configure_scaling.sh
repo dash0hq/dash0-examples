@@ -18,6 +18,8 @@ echo -e "${GREEN}Configuring KEDA scaling with Dash0 metrics...${NC}"
 # Load environment variables
 if [ -f "${SCRIPT_DIR}/../../.env" ]; then
     export $(cat ${SCRIPT_DIR}/../../.env | grep -v '^#' | xargs)
+    # Ensure DASH0_API_URL is exported for envsubst
+    export DASH0_API_URL
 fi
 
 # Check for required environment variables
@@ -40,7 +42,7 @@ kubectl apply -f "${PROJECT_ROOT}/manifests/keda/trigger-authentication.yaml"
 
 # Deploy ScaledObject configuration
 echo -e "${BLUE}Creating ScaledObject with OpenTelemetry metrics from Dash0...${NC}"
-kubectl apply -f "${PROJECT_ROOT}/manifests/keda/scaled-object.yaml"
+envsubst < "${PROJECT_ROOT}/manifests/keda/scaled-object.yaml" | kubectl apply -f -
 
 echo -e "${GREEN}✅ KEDA scaling configured successfully${NC}"
 

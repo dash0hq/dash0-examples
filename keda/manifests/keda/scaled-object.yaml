@@ -31,7 +31,7 @@ spec:
   - type: prometheus
     name: http-requests
     metadata:
-      serverAddress: https://api.eu-west-1.aws.dash0-dev.com/api/prometheus
+      serverAddress: ${DASH0_API_URL}/api/prometheus
       query: |
         sum(rate({otel_metric_name="http.server.duration", service_name="keda-demo-app"}[1m]))
       threshold: "1"
@@ -44,7 +44,7 @@ spec:
   - type: prometheus
     name: queue-size
     metadata:
-      serverAddress: https://api.eu-west-1.aws.dash0-dev.com/api/prometheus
+      serverAddress: ${DASH0_API_URL}/api/prometheus
       query: |
         sum(app_processing_queue_size{service="keda-demo-app"}) or vector(0)
       threshold: "30"
