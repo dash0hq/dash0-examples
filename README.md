@@ -41,6 +41,24 @@ Demonstrates collecting system-level metrics from Kubernetes nodes using the Ope
 
 **Technologies**: OpenTelemetry Collector, Kind, Kubernetes, Helm
 
+### [KEDA Autoscaler Observability](./keda/)
+Demonstrates monitoring KEDA (Kubernetes Event Driven Autoscaler) control plane performance and health:
+- Kind cluster with KEDA operator installed
+- OpenTelemetry Collectors configured to scrape KEDA-specific metrics
+- Node.js demo application with queue-based autoscaling
+- Observability of KEDA operator, webhook, and metrics API server performance
+
+**Technologies**: KEDA, OpenTelemetry Collector, Kind, Kubernetes, Node.js, Helm
+
+### [Dapr Microservices](./dapr/)
+A comprehensive Dapr (Distributed Application Runtime) demonstration showcasing microservices architecture with full observability:
+- Multi-service Java application (Todo, Validation, Notification services + React frontend)
+- Dapr features: state management, pub/sub messaging, service-to-service invocation
+- PostgreSQL and RabbitMQ integration via Dapr components
+- Complete observability with OpenTelemetry and distributed tracing
+
+**Technologies**: Dapr, Java, Spring Boot, React, PostgreSQL, RabbitMQ, OpenTelemetry, Kind, Kubernetes
+
 ## Getting Started
 
 1. **Prerequisites**: Ensure you have Docker installed and a Dash0 account
