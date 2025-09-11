@@ -1,0 +1,133 @@
+mode: deployment
+replicaCount: 1
+image:
+  repository: otel/opentelemetry-collector-contrib
+
+resources:
+  limits:
+    memory: 512Mi
+  requests:
+    memory: 256Mi
+
+extraEnvs:
+  - name: DASH0_AUTH_TOKEN
+    valueFrom:
+      secretKeyRef:
+        name: dash0-secrets
+        key: dash0-authorization-token
+  - name: DASH0_DATASET
+    valueFrom:
+      secretKeyRef:
+        name: dash0-secrets
+        key: dash0-dataset
+  - name: DASH0_ENDPOINT_OTLP_GRPC_HOSTNAME
+    valueFrom:
+      secretKeyRef:
+        name: dash0-secrets
+        key: dash0-grpc-hostname
+  - name: DASH0_ENDPOINT_OTLP_GRPC_PORT
+    valueFrom:
+      secretKeyRef:
+        name: dash0-secrets
+        key: dash0-grpc-port
+
+presets:
+  clusterMetrics:
+    enabled: true
+  kubernetesEvents:
+    enabled: true
+  kubernetesAttributes:
+    enabled: true
+
+config:
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: 0.0.0.0:4317
+        http:
+          endpoint: 0.0.0.0:4318
+    
+    prometheus:
+      config:
+        scrape_configs:
+        - job_name: 'keda-operator'
+          static_configs:
+          - targets: ['keda-operator.keda.svc.cluster.local:8080']
+          metrics_path: /metrics
+          scrape_interval: 30s
+          metric_relabel_configs:
+          - source_labels: [__name__]
+            regex: 'keda_.*'
+            action: keep
+        - job_name: 'keda-webhooks'
+          static_configs:
+          - targets: ['keda-admission-webhooks.keda.svc.cluster.local:9443']
+          metrics_path: /metrics
+          scrape_interval: 30s
+          metric_relabel_configs:
+          - source_labels: [__name__]
+            regex: 'keda_.*'
+            action: keep
+
+  processors:
+    batch:
+      timeout: 10s
+      send_batch_size: 1024
+    
+    resource:
+      attributes:
+        - key: deployment.environment
+          value: keda-demo
+          action: upsert
+        - key: service.namespace
+          action: insert
+          from_attribute: k8s.namespace.name
+
+  exporters:
+    otlp/dash0:
+      auth:
+        authenticator: bearertokenauth/dash0
+      endpoint: ${env:DASH0_ENDPOINT_OTLP_GRPC_HOSTNAME}:${env:DASH0_ENDPOINT_OTLP_GRPC_PORT}
+      headers:
+        "Dash0-Dataset": "${env:DASH0_DATASET}"
+
+  extensions:
+    bearertokenauth/dash0:
+      scheme: Bearer
+      token: ${env:DASH0_AUTH_TOKEN}
+    
+    health_check:
+      endpoint: 0.0.0.0:13133
+
+  service:
+    extensions:
+      - bearertokenauth/dash0
+      - health_check
+    pipelines:
+      metrics:
+        receivers:
+          - otlp
+          - prometheus
+        processors:
+          - batch
+          - resource
+        exporters:
+          - otlp/dash0
+          - debug
+      traces:
+        receivers:
+          - otlp
+        processors:
+          - batch
+          - resource
+        exporters:
+          - otlp/dash0
+      logs:
+        receivers:
+          - otlp
+        processors:
+          - batch
+          - resource
+        exporters:
+          - otlp/dash0

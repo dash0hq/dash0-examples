@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: keda-demo-app
+  namespace: keda-demo
+  labels:
+    app: keda-demo-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: keda-demo-app
+  template:
+    metadata:
+      labels:
+        app: keda-demo-app
+    spec:
+      containers:
+      - name: keda-demo-app
+        image: keda-demo-app:v1
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: PORT
+          value: "8080"
+        # OpenTelemetry configuration
+        - name: OTEL_SERVICE_NAME
+          value: "keda-demo-app"
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: "http://otel-collector-opentelemetry-collector.opentelemetry:4318"
+        - name: OTEL_EXPORTER_OTLP_PROTOCOL
+          value: "http/protobuf"
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: keda-demo-app
+  namespace: keda-demo
+spec:
+  selector:
+    app: keda-demo-app
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080
+    nodePort: 30000
+  type: NodePort

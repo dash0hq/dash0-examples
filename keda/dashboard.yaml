@@ -1,0 +1,200 @@
+apiVersion: perses.dev/v1alpha1
+kind: PersesDashboard
+metadata:
+  name: keda-auto-scaling-demo
+  labels:
+    dash0.com/id: c934210a-6721-4e93-b33f-f15deb0bb5fe
+    dash0.com/dataset: default
+spec:
+  duration: 30m
+  display:
+    description: ""
+    name: Keda Auto-scaling demo
+  layouts:
+    - kind: Grid
+      spec:
+        items:
+          - content:
+              $ref: "#/spec/panels/30480016-8840-4b67-894e-804edc971b06"
+            height: 7
+            width: 24
+            x: 0
+            "y": 6
+          - content:
+              $ref: "#/spec/panels/f4bf4e1b-b049-4c14-8c8b-7d2fd2eecf6f"
+            height: 7
+            width: 24
+            x: 0
+            "y": 13
+          - content:
+              $ref: "#/spec/panels/2b3acc8a-17dd-4542-ae91-dc37c358419c"
+            height: 6
+            width: 24
+            x: 0
+            "y": 0
+  panels:
+    2b3acc8a-17dd-4542-ae91-dc37c358419c:
+      kind: Panel
+      spec:
+        display:
+          description: ""
+          name: "# Pods"
+        links: []
+        plugin:
+          kind: TimeSeriesChart
+          spec:
+            dash0Extensions:
+              yAxis:
+                scale: linear
+            legend:
+              mode: list
+              position: bottom
+              showLegend: true
+            querySettings:
+              - colorMode: fixed
+                colorValue: var(--decorative-5-bg)
+                queryIndex: 0
+            thresholds: {}
+            visual:
+              areaOpacity: 0.55
+              connectNulls: false
+              display: bar
+              lineWidth: 1
+              palette:
+                mode: auto
+              pointRadius: 2.5
+              stack: none
+            yAxis:
+              format:
+                enforceMinimumFractionDigits: false
+                shortValues: true
+                signDisplay: auto
+                unit: decimal
+              min: 0
+              show: true
+              showOnlyMaxScale: false
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: MetricsTimeSeriesQuery
+                spec:
+                  hidden: false
+                  id: c83b7c4a-3924-4f29-a70e-ca3abaca5054
+                  query:
+                    aggregation: null
+                    filter: []
+                    groupBy: []
+                    metric: k8s.hpa.current_replicas
+                    metricAggregationTemporality: unspecified
+                    metricMonotonic: false
+                    metricType: gauge
+                    metricUnit: "{pod}"
+                    queryType: range
+                    range: 5m
+                  requestId: k8s.hpa.current_replicas
+                  seriesNameFormat: Pods
+    30480016-8840-4b67-894e-804edc971b06:
+      kind: Panel
+      spec:
+        display:
+          description: ""
+          name: Requests Rate
+        links: []
+        plugin:
+          kind: TimeSeriesChart
+          spec:
+            dash0Extensions:
+              yAxis:
+                scale: symlog
+            legend:
+              mode: list
+              position: bottom
+              showLegend: true
+            querySettings:
+              - colorMode: fixed
+                colorValue: var(--decorative-5-bg)
+                queryIndex: 1
+              - colorMode: fixed
+                colorValue: var(--decorative-error-bg)
+                queryIndex: 0
+            thresholds: {}
+            visual:
+              areaOpacity: 0.55
+              connectNulls: false
+              display: line
+              lineWidth: 1
+              palette:
+                mode: auto
+              pointRadius: 2.5
+              stack: none
+            yAxis:
+              format:
+                enforceMinimumFractionDigits: false
+                shortValues: true
+                signDisplay: auto
+                unit: decimal
+              show: true
+              showOnlyMaxScale: false
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  hidden: false
+                  id: 3d014519-367b-4905-aa20-b5adb077eef6
+                  query: sum (rate({otel_metric_name = "http.server.duration", service_name="keda-demo-app"}[1m]))
+                  requestId: sum (increase({otel_metric_name = "http_requests_total", otel_metric_type = "sum"}[1m]))
+                  seriesNameFormat: Requests Rate
+    f4bf4e1b-b049-4c14-8c8b-7d2fd2eecf6f:
+      kind: Panel
+      spec:
+        display:
+          description: ""
+          name: Queue Size
+        links: []
+        plugin:
+          kind: TimeSeriesChart
+          spec:
+            dash0Extensions:
+              yAxis:
+                scale: linear
+            legend:
+              mode: list
+              position: bottom
+              showLegend: true
+            querySettings:
+              - colorMode: fixed
+                colorValue: var(--decorative-5-bg)
+                queryIndex: 1
+            thresholds: {}
+            visual:
+              areaOpacity: 0.55
+              connectNulls: false
+              display: line
+              lineWidth: 1
+              palette:
+                mode: auto
+              pointRadius: 2.5
+              stack: none
+            yAxis:
+              format:
+                enforceMinimumFractionDigits: false
+                shortValues: true
+                signDisplay: auto
+                unit: decimal
+              min: 0
+              show: true
+              showOnlyMaxScale: false
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  hidden: false
+                  id: c8e92016-1056-4d2c-a4e2-2db796cd90c0
+                  query: sum(app_processing_queue_size{service="keda-demo-app"}) or vector(0)
+                  requestId: sum by (service_namespace, service_name) (increase({otel_metric_name = "dash0.spans", service_name = "keda-demo-app", service_namespace = "keda-demo", dash0_operation_name != ""}[$__interval]))
+                  seriesNameFormat: Queue Size
