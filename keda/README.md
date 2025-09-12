@@ -42,10 +42,10 @@ HTTP App ────┐                RabbitMQ Producer/Consumer
      OpenTelemetry Collector ──────────┤
              │                         │
              ▼                         ▼
-           Dash0 ◄─────────── RabbitMQ Metrics
+           Dash0 ◄─── RabbitMQ Operator (guest/guest)
              │
              ▼
-        KEDA Operator
+        KEDA Operator (queries Dash0 via Prometheus API)
              │
              ▼
     Horizontal Pod Autoscaler
@@ -54,22 +54,28 @@ HTTP App ────┐                RabbitMQ Producer/Consumer
 ## Scaling Triggers
 
 ### HTTP Demo App
-- **Trigger**: >1 request/second 
+- **Trigger**: >1 request/second from Dash0 metrics
 - **Scales**: 1 → 10 pods
-- **Metrics**: `http.server.duration` rate
+- **Metrics Source**: Dash0 Prometheus API (`http.server.duration` rate)
+- **Authentication**: Bearer token via TriggerAuthentication
 
 ### RabbitMQ Consumer
 - **Trigger**: >5 messages in queue
 - **Scales**: 0 → 10 pods (scale-to-zero!)
-- **Metrics**: RabbitMQ queue depth
-- **Demo**: 600 messages processed in ~2 minutes
+- **Connection**: Direct RabbitMQ connection (`guest:guest@rabbitmq.keda-demo.svc.cluster.local`)
+- **Queue**: `work_queue` with durable persistence
 
 ## Services
 
-- **HTTP Test App**: `http://localhost:30000`
-- **RabbitMQ Producer API**: `http://localhost:30001`
-- **OpenTelemetry Collector**: Exports to Dash0
-- **KEDA**: Uses OpenTelemetry metrics (not Prometheus scraping)
+- **HTTP Test App**: `http://localhost:30000` (scales based on request rate)
+- **RabbitMQ Producer API**: `http://localhost:30001` (publishes messages to trigger scaling)
+  - `POST /publish` - Send single message
+  - `POST /burst` - Send multiple messages (`{"count": N}`)
+- **RabbitMQ Management UI**: `http://localhost:31672` (guest/guest)
+- **OpenTelemetry Collector**: Exports metrics to Dash0 via OTLP
+- **KEDA**: 
+  - HTTP scaling via Dash0 Prometheus API
+  - RabbitMQ scaling via direct AMQP connection
 
 ## Cleanup
 
