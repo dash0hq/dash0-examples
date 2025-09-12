@@ -8,7 +8,7 @@
   },
   "dependencies": {
     "amqplib": "^0.10.3",
-    "express": "^4.18.2"
+    "express": "^5.1.0"
   },
   "devDependencies": {
     "@opentelemetry/api": "^1.8.0",
