@@ -1,0 +1,183 @@
+apiVersion: perses.dev/v1alpha1
+kind: PersesDashboard
+metadata:
+  name: keda-auto-scaling-demo
+  labels:
+    dash0.com/id: c934210a-6721-4e93-b33f-f15deb0bb5fe
+    dash0.com/dataset: default
+spec:
+  duration: 30m
+  display:
+    description: ""
+    name: Keda Auto-scaling demo
+  layouts:
+    - kind: Grid
+      spec:
+        items:
+          - content:
+              $ref: "#/spec/panels/30480016-8840-4b67-894e-804edc971b06"
+            height: 7
+            width: 24
+            x: 0
+            "y": 6
+          - content:
+              $ref: "#/spec/panels/2b3acc8a-17dd-4542-ae91-dc37c358419c"
+            height: 6
+            width: 24
+            x: 0
+            "y": 0
+          - content:
+              $ref: "#/spec/panels/26fdeda0-ec35-40f9-a6e7-690a44d16b76"
+            height: 6
+            width: 24
+            x: 0
+            "y": 13
+  panels:
+    26fdeda0-ec35-40f9-a6e7-690a44d16b76:
+      kind: Panel
+      spec:
+        display:
+          description: ""
+          name: Ready Messages in Queue
+        links: []
+        plugin:
+          kind: TimeSeriesChart
+          spec:
+            dash0Extensions:
+              yAxis:
+                scale: linear
+            legend:
+              mode: list
+              position: bottom
+              showLegend: true
+            querySettings: []
+            thresholds: {}
+            visual:
+              areaOpacity: 0.55
+              connectNulls: false
+              display: line
+              lineWidth: 1
+              palette:
+                mode: auto
+              pointRadius: 2.5
+              stack: none
+            yAxis:
+              format:
+                enforceMinimumFractionDigits: false
+                shortValues: true
+                signDisplay: auto
+                unit: decimal
+              show: true
+              showOnlyMaxScale: false
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  hidden: false
+                  id: f0de2de4-fa25-48e4-b8ac-9585cc61d573
+                  query: sum by (rabbitmq_queue_name)({otel_metric_name = "rabbitmq.message.current", otel_metric_type = "sum"})
+                  requestId: sum ({otel_metric_name = "rabbitmq.message.current", otel_metric_type = "sum"})
+                  seriesNameFormat: "{{rabbitmq_queue_name}}"
+    2b3acc8a-17dd-4542-ae91-dc37c358419c:
+      kind: Panel
+      spec:
+        display:
+          description: ""
+          name: "# Pods"
+        links: []
+        plugin:
+          kind: TimeSeriesChart
+          spec:
+            dash0Extensions:
+              yAxis:
+                scale: linear
+            legend:
+              mode: list
+              position: bottom
+              showLegend: true
+            querySettings: []
+            thresholds: {}
+            visual:
+              areaOpacity: 0.55
+              connectNulls: false
+              display: bar
+              lineWidth: 1
+              palette:
+                mode: auto
+              pointRadius: 2.5
+              stack: none
+            yAxis:
+              format:
+                enforceMinimumFractionDigits: false
+                shortValues: true
+                signDisplay: auto
+                unit: decimal
+              min: 0
+              show: true
+              showOnlyMaxScale: false
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  hidden: false
+                  id: c83b7c4a-3924-4f29-a70e-ca3abaca5054
+                  query: sum by (k8s_hpa_name) ({otel_metric_name = "k8s.hpa.current_replicas", otel_metric_type = "gauge"})
+                  requestId: sum by (dash0_resource_name) ({otel_metric_name = "k8s.hpa.current_replicas", otel_metric_type = "gauge"})
+                  seriesNameFormat: "{{ k8s_hpa_name }}"
+    30480016-8840-4b67-894e-804edc971b06:
+      kind: Panel
+      spec:
+        display:
+          description: ""
+          name: Requests Rate
+        links: []
+        plugin:
+          kind: TimeSeriesChart
+          spec:
+            dash0Extensions:
+              yAxis:
+                scale: symlog
+            legend:
+              mode: list
+              position: bottom
+              showLegend: true
+            querySettings:
+              - colorMode: fixed
+                colorValue: var(--decorative-5-bg)
+                queryIndex: 1
+              - colorMode: fixed
+                colorValue: var(--decorative-error-bg)
+                queryIndex: 0
+            thresholds: {}
+            visual:
+              areaOpacity: 0.55
+              connectNulls: false
+              display: line
+              lineWidth: 1
+              palette:
+                mode: auto
+              pointRadius: 2.5
+              stack: none
+            yAxis:
+              format:
+                enforceMinimumFractionDigits: false
+                shortValues: true
+                signDisplay: auto
+                unit: decimal
+              show: true
+              showOnlyMaxScale: false
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  hidden: false
+                  id: 3d014519-367b-4905-aa20-b5adb077eef6
+                  query: sum (rate({otel_metric_name = "http.server.duration", service_name="keda-demo-app"}[1m]))
+                  requestId: sum (increase({otel_metric_name = "http_requests_total", otel_metric_type = "sum"}[1m]))
+                  seriesNameFormat: Requests Rate

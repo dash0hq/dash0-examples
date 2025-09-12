@@ -41,6 +41,25 @@ Demonstrates collecting system-level metrics from Kubernetes nodes using the Ope
 
 **Technologies**: OpenTelemetry Collector, Kind, Kubernetes, Helm
 
+### [KEDA Auto-scaling with Dash0](./keda/)
+Demonstrates Kubernetes auto-scaling using KEDA with OpenTelemetry metrics exported to Dash0:
+- HTTP-based scaling: Scale based on request rate from Dash0 metrics
+- RabbitMQ queue-based scaling: Scale consumers based on queue depth (scale-to-zero capable)
+- OpenTelemetry Collector exporting metrics to Dash0
+- KEDA configured to use Dash0 as metrics source via Prometheus API
+- Producer/Consumer Node.js services with full observability
+
+**Technologies**: KEDA, OpenTelemetry Collector, Kind, Kubernetes, Node.js, RabbitMQ, Helm
+
+### [Dapr Microservices](./dapr/)
+A comprehensive Dapr (Distributed Application Runtime) demonstration showcasing microservices architecture with full observability:
+- Multi-service Java application (Todo, Validation, Notification services + React frontend)
+- Dapr features: state management, pub/sub messaging, service-to-service invocation
+- PostgreSQL and RabbitMQ integration via Dapr components
+- Complete observability with OpenTelemetry and distributed tracing
+
+**Technologies**: Dapr, Java, Spring Boot, React, PostgreSQL, RabbitMQ, OpenTelemetry, Kind, Kubernetes
+
 ## Getting Started
 
 1. **Prerequisites**: Ensure you have Docker installed and a Dash0 account

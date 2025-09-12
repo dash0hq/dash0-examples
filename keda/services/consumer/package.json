@@ -1,0 +1,16 @@
+{
+  "name": "rabbitmq-consumer",
+  "version": "1.0.0",
+  "description": "RabbitMQ message consumer for KEDA demo",
+  "main": "app.js",
+  "scripts": {
+    "start": "node --require @opentelemetry/auto-instrumentations-node/register app.js"
+  },
+  "dependencies": {
+    "amqplib": "^0.10.3"
+  },
+  "devDependencies": {
+    "@opentelemetry/api": "^1.8.0",
+    "@opentelemetry/auto-instrumentations-node": "^0.44.0"
+  }
+}

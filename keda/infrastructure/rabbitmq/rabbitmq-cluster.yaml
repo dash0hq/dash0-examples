@@ -1,0 +1,93 @@
+apiVersion: rabbitmq.com/v1beta1
+kind: RabbitmqCluster
+metadata:
+  name: rabbitmq
+  namespace: keda-demo
+spec:
+  # Single replica
+  replicas: 1
+  
+  # Image configuration
+  image: rabbitmq:3.13-management
+  
+  # Resource limits
+  resources:
+    limits:
+      cpu: "500m"
+      memory: "1Gi"
+    requests:
+      cpu: "100m"
+      memory: "256Mi"
+  
+  # Persistence configuration
+  persistence:
+    storageClassName: standard
+    storage: "2Gi"
+  
+  # RabbitMQ configuration
+  rabbitmq:
+    additionalPlugins:
+      - rabbitmq_management
+      - rabbitmq_prometheus
+      - rabbitmq_amqp1_0
+    
+    additionalConfig: |
+      # Memory configuration
+      vm_memory_high_watermark.relative = 0.6
+      
+      # Disk free space  
+      disk_free_limit.relative = 2.0
+      
+      # Allow guest user from any host (required for KEDA)
+      loopback_users.guest = false
+      
+      # Default user
+      default_user = guest
+      default_pass = guest
+  
+  # Service configuration
+  service:
+    type: ClusterIP
+    annotations: {}
+
+---
+
+# NodePort service for management UI access
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq-management
+  namespace: keda-demo
+  labels:
+    app.kubernetes.io/name: rabbitmq
+spec:
+  type: NodePort
+  ports:
+    - name: management
+      port: 15672
+      targetPort: 15672
+      nodePort: 31672
+  selector:
+    app.kubernetes.io/component: rabbitmq
+    app.kubernetes.io/name: rabbitmq
+
+---
+
+# NodePort service for AMQP access
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq-amqp
+  namespace: keda-demo
+  labels:
+    app.kubernetes.io/name: rabbitmq
+spec:
+  type: NodePort
+  ports:
+    - name: amqp
+      port: 5672
+      targetPort: 5672
+      nodePort: 30002
+  selector:
+    app.kubernetes.io/component: rabbitmq
+    app.kubernetes.io/name: rabbitmq

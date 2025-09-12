@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rabbitmq-producer
+  namespace: keda-demo
+  labels:
+    app: rabbitmq-producer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rabbitmq-producer
+  template:
+    metadata:
+      labels:
+        app: rabbitmq-producer
+    spec:
+      containers:
+      - name: producer
+        image: rabbitmq-producer:v1
+        ports:
+        - containerPort: 3000
+        env:
+        - name: PORT
+          value: "3000"
+        - name: RABBITMQ_URL
+          value: "amqp://guest:guest@rabbitmq.keda-demo.svc.cluster.local:5672/"
+        - name: OTEL_SERVICE_NAME
+          value: "rabbitmq-producer"
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: "http://otel-collector-opentelemetry-collector.opentelemetry:4318"
+        - name: OTEL_EXPORTER_OTLP_PROTOCOL
+          value: "http/protobuf"
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 100m
+            memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq-producer
+  namespace: keda-demo
+spec:
+  selector:
+    app: rabbitmq-producer
+  ports:
+  - port: 80
+    targetPort: 3000
+    nodePort: 30001
+  type: NodePort
