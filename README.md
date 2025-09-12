@@ -41,14 +41,15 @@ Demonstrates collecting system-level metrics from Kubernetes nodes using the Ope
 
 **Technologies**: OpenTelemetry Collector, Kind, Kubernetes, Helm
 
-### [KEDA Autoscaler Observability](./keda/)
-Demonstrates monitoring KEDA (Kubernetes Event Driven Autoscaler) control plane performance and health:
-- Kind cluster with KEDA operator installed
-- OpenTelemetry Collectors configured to scrape KEDA-specific metrics
-- Node.js demo application with queue-based autoscaling
-- Observability of KEDA operator, webhook, and metrics API server performance
+### [KEDA Auto-scaling with Dash0](./keda/)
+Demonstrates Kubernetes auto-scaling using KEDA with OpenTelemetry metrics exported to Dash0:
+- HTTP-based scaling: Scale based on request rate from Dash0 metrics
+- RabbitMQ queue-based scaling: Scale consumers based on queue depth (scale-to-zero capable)
+- OpenTelemetry Collector exporting metrics to Dash0
+- KEDA configured to use Dash0 as metrics source via Prometheus API
+- Producer/Consumer Node.js services with full observability
 
-**Technologies**: KEDA, OpenTelemetry Collector, Kind, Kubernetes, Node.js, Helm
+**Technologies**: KEDA, OpenTelemetry Collector, Kind, Kubernetes, Node.js, RabbitMQ, Helm
 
 ### [Dapr Microservices](./dapr/)
 A comprehensive Dapr (Distributed Application Runtime) demonstration showcasing microservices architecture with full observability:

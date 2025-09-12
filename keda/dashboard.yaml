@@ -21,18 +21,65 @@ spec:
             x: 0
             "y": 6
           - content:
-              $ref: "#/spec/panels/f4bf4e1b-b049-4c14-8c8b-7d2fd2eecf6f"
-            height: 7
-            width: 24
-            x: 0
-            "y": 13
-          - content:
               $ref: "#/spec/panels/2b3acc8a-17dd-4542-ae91-dc37c358419c"
             height: 6
             width: 24
             x: 0
             "y": 0
+          - content:
+              $ref: "#/spec/panels/26fdeda0-ec35-40f9-a6e7-690a44d16b76"
+            height: 6
+            width: 24
+            x: 0
+            "y": 13
   panels:
+    26fdeda0-ec35-40f9-a6e7-690a44d16b76:
+      kind: Panel
+      spec:
+        display:
+          description: ""
+          name: Ready Messages in Queue
+        links: []
+        plugin:
+          kind: TimeSeriesChart
+          spec:
+            dash0Extensions:
+              yAxis:
+                scale: linear
+            legend:
+              mode: list
+              position: bottom
+              showLegend: true
+            querySettings: []
+            thresholds: {}
+            visual:
+              areaOpacity: 0.55
+              connectNulls: false
+              display: line
+              lineWidth: 1
+              palette:
+                mode: auto
+              pointRadius: 2.5
+              stack: none
+            yAxis:
+              format:
+                enforceMinimumFractionDigits: false
+                shortValues: true
+                signDisplay: auto
+                unit: decimal
+              show: true
+              showOnlyMaxScale: false
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  hidden: false
+                  id: f0de2de4-fa25-48e4-b8ac-9585cc61d573
+                  query: sum by (rabbitmq_queue_name)({otel_metric_name = "rabbitmq.message.current", otel_metric_type = "sum"})
+                  requestId: sum ({otel_metric_name = "rabbitmq.message.current", otel_metric_type = "sum"})
+                  seriesNameFormat: "{{rabbitmq_queue_name}}"
     2b3acc8a-17dd-4542-ae91-dc37c358419c:
       kind: Panel
       spec:
@@ -50,10 +97,7 @@ spec:
               mode: list
               position: bottom
               showLegend: true
-            querySettings:
-              - colorMode: fixed
-                colorValue: var(--decorative-5-bg)
-                queryIndex: 0
+            querySettings: []
             thresholds: {}
             visual:
               areaOpacity: 0.55
@@ -77,23 +121,13 @@ spec:
           - kind: TimeSeriesQuery
             spec:
               plugin:
-                kind: MetricsTimeSeriesQuery
+                kind: PrometheusTimeSeriesQuery
                 spec:
                   hidden: false
                   id: c83b7c4a-3924-4f29-a70e-ca3abaca5054
-                  query:
-                    aggregation: null
-                    filter: []
-                    groupBy: []
-                    metric: k8s.hpa.current_replicas
-                    metricAggregationTemporality: unspecified
-                    metricMonotonic: false
-                    metricType: gauge
-                    metricUnit: "{pod}"
-                    queryType: range
-                    range: 5m
-                  requestId: k8s.hpa.current_replicas
-                  seriesNameFormat: Pods
+                  query: sum by (k8s_hpa_name) ({otel_metric_name = "k8s.hpa.current_replicas", otel_metric_type = "gauge"})
+                  requestId: sum by (dash0_resource_name) ({otel_metric_name = "k8s.hpa.current_replicas", otel_metric_type = "gauge"})
+                  seriesNameFormat: "{{ k8s_hpa_name }}"
     30480016-8840-4b67-894e-804edc971b06:
       kind: Panel
       spec:
@@ -147,54 +181,3 @@ spec:
                   query: sum (rate({otel_metric_name = "http.server.duration", service_name="keda-demo-app"}[1m]))
                   requestId: sum (increase({otel_metric_name = "http_requests_total", otel_metric_type = "sum"}[1m]))
                   seriesNameFormat: Requests Rate
-    f4bf4e1b-b049-4c14-8c8b-7d2fd2eecf6f:
-      kind: Panel
-      spec:
-        display:
-          description: ""
-          name: Queue Size
-        links: []
-        plugin:
-          kind: TimeSeriesChart
-          spec:
-            dash0Extensions:
-              yAxis:
-                scale: linear
-            legend:
-              mode: list
-              position: bottom
-              showLegend: true
-            querySettings:
-              - colorMode: fixed
-                colorValue: var(--decorative-5-bg)
-                queryIndex: 1
-            thresholds: {}
-            visual:
-              areaOpacity: 0.55
-              connectNulls: false
-              display: line
-              lineWidth: 1
-              palette:
-                mode: auto
-              pointRadius: 2.5
-              stack: none
-            yAxis:
-              format:
-                enforceMinimumFractionDigits: false
-                shortValues: true
-                signDisplay: auto
-                unit: decimal
-              min: 0
-              show: true
-              showOnlyMaxScale: false
-        queries:
-          - kind: TimeSeriesQuery
-            spec:
-              plugin:
-                kind: PrometheusTimeSeriesQuery
-                spec:
-                  hidden: false
-                  id: c8e92016-1056-4d2c-a4e2-2db796cd90c0
-                  query: sum(app_processing_queue_size{service="keda-demo-app"}) or vector(0)
-                  requestId: sum by (service_namespace, service_name) (increase({otel_metric_name = "dash0.spans", service_name = "keda-demo-app", service_namespace = "keda-demo", dash0_operation_name != ""}[$__interval]))
-                  seriesNameFormat: Queue Size
