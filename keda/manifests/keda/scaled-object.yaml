@@ -26,8 +26,6 @@ spec:
             value: 100
             periodSeconds: 5
   triggers:
-  # HTTP request rate trigger (from auto-instrumentation metrics in Dash0)
-  # Scales up when request rate exceeds 1 request/second
   - type: prometheus
     name: http-requests
     metadata:

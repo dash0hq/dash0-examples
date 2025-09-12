@@ -62,9 +62,3 @@ helm upgrade --install otel-daemonset open-telemetry/opentelemetry-collector \
     --wait
 
 echo -e "${GREEN}✅ OpenTelemetry Collector installed successfully!${NC}"
-echo ""
-echo "OpenTelemetry collector pods:"
-kubectl get pods -n opentelemetry
-echo ""
-echo "Collector services:"
-kubectl get svc -n opentelemetry

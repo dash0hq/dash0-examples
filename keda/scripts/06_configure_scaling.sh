@@ -50,12 +50,3 @@ echo -e "${BLUE}Creating RabbitMQ-based ScaledObject...${NC}"
 kubectl apply -f "${PROJECT_ROOT}/manifests/keda/rabbitmq-scaled-object.yaml"
 
 echo -e "${GREEN}✅ KEDA scaling configured successfully${NC}"
-
-# Show the ScaledObjects
-echo ""
-echo "ScaledObjects:"
-kubectl get scaledobjects -n keda-demo
-
-echo ""
-echo "HPA created by KEDA:"
-kubectl get hpa -n keda-demo

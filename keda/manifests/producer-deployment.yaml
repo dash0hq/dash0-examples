@@ -23,10 +23,8 @@ spec:
         env:
         - name: PORT
           value: "3000"
-        # RabbitMQ configuration
         - name: RABBITMQ_URL
           value: "amqp://guest:guest@rabbitmq.keda-demo.svc.cluster.local:5672/"
-        # OpenTelemetry configuration
         - name: OTEL_SERVICE_NAME
           value: "rabbitmq-producer"
         - name: OTEL_EXPORTER_OTLP_ENDPOINT

@@ -46,8 +46,3 @@ kubectl rollout status deployment/rabbitmq-producer -n keda-demo --timeout=120s
 kubectl rollout status deployment/rabbitmq-consumer -n keda-demo --timeout=120s
 
 echo -e "${GREEN}✅ All applications deployed successfully${NC}"
-
-# Show pods
-echo ""
-echo "Application pods:"
-kubectl get pods -n keda-demo

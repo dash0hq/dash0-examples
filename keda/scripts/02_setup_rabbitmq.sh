@@ -32,12 +32,4 @@ kubectl apply -f "${SCRIPT_DIR}/../infrastructure/rabbitmq/rabbitmq-cluster.yaml
 echo "Waiting for RabbitMQ cluster to be ready..."
 kubectl wait --for=condition=AllReplicasReady rabbitmqcluster/rabbitmq -n keda-demo --timeout=300s
 
-# RabbitMQ services will be deployed later by the app deployment script
-
 echo -e "${GREEN}✅ RabbitMQ setup complete${NC}"
-echo ""
-echo "Producer API available at: http://localhost:30001"
-echo "Test manual publishing: curl -X POST http://localhost:30001/publish -H 'Content-Type: application/json' -d '{\"message\": \"Test message\"}'"
-echo ""
-echo "Watch consumer pods scale:"
-echo "  kubectl get pods -n keda-demo -l app=rabbitmq-consumer -w"
