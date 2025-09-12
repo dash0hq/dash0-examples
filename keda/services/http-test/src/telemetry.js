@@ -6,7 +6,7 @@ const { OTLPMetricExporter } = require('@opentelemetry/exporter-metrics-otlp-htt
 
 const sdk = new NodeSDK({
   resource: new Resource({
-    'service.name': process.env.OTEL_SERVICE_NAME || 'keda-demo-app',
+    'service.name': process.env.OTEL_SERVICE_NAME || 'http-app',
   }),
   instrumentations: [
     getNodeAutoInstrumentations({

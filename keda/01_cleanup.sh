@@ -16,7 +16,7 @@ echo "====================="
 echo ""
 echo "This will remove:"
 echo "  - Kind cluster (keda-demo)"
-echo "  - All associated resources"
+echo "  - All associated resources (KEDA, RabbitMQ, OpenTelemetry, Apps)"
 echo ""
 echo -n "Continue with cleanup? (y/n): "
 read -r response

@@ -40,9 +40,14 @@ kubectl create secret generic dash0-auth-secret \
 echo -e "${BLUE}Creating TriggerAuthentication for Dash0...${NC}"
 kubectl apply -f "${PROJECT_ROOT}/manifests/keda/trigger-authentication.yaml"
 
-# Deploy ScaledObject configuration
-echo -e "${BLUE}Creating ScaledObject with OpenTelemetry metrics from Dash0...${NC}"
+# RabbitMQ uses guest:guest credentials directly in the ScaledObject - no additional auth needed
+
+# Deploy ScaledObjects for HTTP and RabbitMQ scaling
+echo -e "${BLUE}Creating HTTP-based ScaledObject with OpenTelemetry metrics from Dash0...${NC}"
 envsubst < "${PROJECT_ROOT}/manifests/keda/scaled-object.yaml" | kubectl apply -f -
+
+echo -e "${BLUE}Creating RabbitMQ-based ScaledObject...${NC}"
+kubectl apply -f "${PROJECT_ROOT}/manifests/keda/rabbitmq-scaled-object.yaml"
 
 echo -e "${GREEN}✅ KEDA scaling configured successfully${NC}"
 

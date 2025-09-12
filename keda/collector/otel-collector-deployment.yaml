@@ -47,28 +47,12 @@ config:
           endpoint: 0.0.0.0:4317
         http:
           endpoint: 0.0.0.0:4318
+    rabbitmq:
+      endpoint: http://rabbitmq.keda-demo.svc.cluster.local:15672
+      username: guest
+      password: guest
+      collection_interval: 10s
     
-    prometheus:
-      config:
-        scrape_configs:
-        - job_name: 'keda-operator'
-          static_configs:
-          - targets: ['keda-operator.keda.svc.cluster.local:8080']
-          metrics_path: /metrics
-          scrape_interval: 30s
-          metric_relabel_configs:
-          - source_labels: [__name__]
-            regex: 'keda_.*'
-            action: keep
-        - job_name: 'keda-webhooks'
-          static_configs:
-          - targets: ['keda-admission-webhooks.keda.svc.cluster.local:9443']
-          metrics_path: /metrics
-          scrape_interval: 30s
-          metric_relabel_configs:
-          - source_labels: [__name__]
-            regex: 'keda_.*'
-            action: keep
 
   processors:
     batch:
@@ -108,7 +92,7 @@ config:
       metrics:
         receivers:
           - otlp
-          - prometheus
+          - rabbitmq
         processors:
           - batch
           - resource

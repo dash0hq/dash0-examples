@@ -1,7 +1,7 @@
 {
-  "name": "keda-demo-app",
+  "name": "http-app",
   "version": "1.0.0",
-  "description": "Sample app for KEDA autoscaling demo with OpenTelemetry",
+  "description": "Simple HTTP app for KEDA autoscaling demo with OpenTelemetry",
   "main": "src/index.js",
   "scripts": {
     "start": "node -r ./src/telemetry.js src/index.js"

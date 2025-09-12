@@ -1,6 +1,6 @@
 # KEDA Auto-scaling with Dash0
 
-Demonstrates Kubernetes auto-scaling using KEDA with metrics from Dash0.
+Demonstrates Kubernetes auto-scaling using KEDA with OpenTelemetry metrics exported to Dash0.
 
 ## Quick Start
 
@@ -22,6 +22,7 @@ Demonstrates Kubernetes auto-scaling using KEDA with metrics from Dash0.
 4. **Test auto-scaling**
    ```bash
    ./scripts/generate_load.sh
+   # Choose option 1 for HTTP scaling or option 2 for RabbitMQ scaling
    ```
 
 5. **Watch scaling**
@@ -29,22 +30,46 @@ Demonstrates Kubernetes auto-scaling using KEDA with metrics from Dash0.
    kubectl get pods -n keda-demo -w
    ```
 
-## How it Works
+## Architecture
 
 ```
-App → OpenTelemetry SDK → Collector → Dash0
-                                         ↓
-KEDA ← Prometheus API ← ← ← ← ← ← ← ← ← ←
-  ↓
-HPA → Scale Pods
+HTTP App ────┐                RabbitMQ Producer/Consumer
+             │                         │
+             ▼                         ▼
+     OpenTelemetry SDK          OpenTelemetry SDK
+             │                         │
+             ▼                         ▼
+     OpenTelemetry Collector ──────────┤
+             │                         │
+             ▼                         ▼
+           Dash0 ◄─────────── RabbitMQ Metrics
+             │
+             ▼
+        KEDA Operator
+             │
+             ▼
+    Horizontal Pod Autoscaler
 ```
 
-1. **App sends metrics** via OpenTelemetry SDK
-2. **Collector forwards** to Dash0
-3. **KEDA queries** Dash0's Prometheus API
-4. **Scales based on**:
-   - HTTP request rate (>10 req/s)
-   - Queue size (>30 items)
+## Scaling Triggers
+
+### HTTP Demo App
+- **Trigger**: >1 request/second 
+- **Scales**: 1 → 10 pods
+- **Metrics**: `http.server.duration` rate
+
+### RabbitMQ Consumer
+- **Trigger**: >5 messages in queue
+- **Scales**: 0 → 10 pods (scale-to-zero!)
+- **Metrics**: RabbitMQ queue depth
+- **Demo**: 600 messages processed in ~2 minutes
+
+## Services
+
+- **HTTP Test App**: `http://localhost:30000`
+- **RabbitMQ Producer API**: `http://localhost:30001`
+- **OpenTelemetry Collector**: Exports to Dash0
+- **KEDA**: Uses OpenTelemetry metrics (not Prometheus scraping)
 
 ## Cleanup
 

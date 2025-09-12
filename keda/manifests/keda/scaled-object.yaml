@@ -1,11 +1,11 @@
 apiVersion: keda.sh/v1alpha1
 kind: ScaledObject
 metadata:
-  name: keda-demo-scaler
+  name: http-scaler
   namespace: keda-demo
 spec:
   scaleTargetRef:
-    name: keda-demo-app
+    name: http-app
   minReplicaCount: 1
   maxReplicaCount: 10
   cooldownPeriod: 5
@@ -33,21 +33,8 @@ spec:
     metadata:
       serverAddress: ${DASH0_API_URL}/api/prometheus
       query: |
-        sum(rate({otel_metric_name="http.server.duration", service_name="keda-demo-app"}[1m]))
+        sum(rate({otel_metric_name="http.server.duration", service_name="http-app"}[1m]))
       threshold: "1"
-      authModes: "bearer"
-    authenticationRef:
-      name: dash0-auth
-  
-  # Queue size trigger (from OpenTelemetry metrics in Dash0)
-  # Scales up when queue size exceeds 30 items
-  - type: prometheus
-    name: queue-size
-    metadata:
-      serverAddress: ${DASH0_API_URL}/api/prometheus
-      query: |
-        sum(app_processing_queue_size{service="keda-demo-app"}) or vector(0)
-      threshold: "30"
       authModes: "bearer"
     authenticationRef:
       name: dash0-auth
