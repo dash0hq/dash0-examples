@@ -24,4 +24,4 @@ helm upgrade --install keda kedacore/keda \
     --values "${SCRIPT_DIR}/../keda/values.yaml" \
     --wait
 
-echo -e "${GREEN}✅ KEDA installed successfully${NC}"
+echo -e "${GREEN}✅ KEDA installed successfully with OpenTelemetry metrics enabled${NC}"
