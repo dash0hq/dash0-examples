@@ -1,0 +1,38 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: http-scaler
+  namespace: keda-demo
+spec:
+  scaleTargetRef:
+    name: http-app
+  minReplicaCount: 1
+  maxReplicaCount: 10
+  cooldownPeriod: 5
+  pollingInterval: 1
+  advanced:
+    horizontalPodAutoscalerConfig:
+      behavior:
+        scaleDown:
+          stabilizationWindowSeconds: 10
+          policies:
+          - type: Percent
+            value: 100
+            periodSeconds: 10
+        scaleUp:
+          stabilizationWindowSeconds: 5
+          policies:
+          - type: Percent
+            value: 100
+            periodSeconds: 5
+  triggers:
+  - type: prometheus
+    name: http-requests
+    metadata:
+      serverAddress: ${DASH0_API_URL}/api/prometheus
+      query: |
+        sum(rate({otel_metric_name="http.server.duration", service_name="http-app"}[1m]))
+      threshold: "1"
+      authModes: "bearer"
+    authenticationRef:
+      name: dash0-auth

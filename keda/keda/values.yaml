@@ -1,0 +1,14 @@
+# Additional arguments for KEDA operator
+extraArgs:
+  keda:
+    enable-prometheus-metrics: "false"
+    enable-opentelemetry-metrics: "true"
+
+# Global environment variables for all KEDA components
+env:
+  - name: OTEL_EXPORTER_OTLP_ENDPOINT
+    value: "http://otel-collector-opentelemetry-collector.opentelemetry.svc.cluster.local:4318"
+  - name: OTEL_EXPORTER_OTLP_PROTOCOL
+    value: "http/protobuf"
+  - name: OTEL_SERVICE_NAME
+    value: "keda-operator"
