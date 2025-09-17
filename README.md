@@ -32,6 +32,16 @@ A complete Traefik ingress controller demo with full observability using OpenTel
 
 **Technologies**: Traefik, Kubernetes (Kind), OpenTelemetry, Node.js, Helm
 
+### [Ingress-NGINX with Observability](./ingress-nginx/)
+A complete ingress-nginx controller demo with full observability using OpenTelemetry and Dash0. This demo showcases:
+- Multi-node Kind cluster with ingress-nginx as ingress controller
+- OTLP metrics and distributed tracing from ingress-nginx
+- OpenTelemetry Collectors (DaemonSet + Deployment) for comprehensive telemetry collection
+- Trace-logs correlation with custom log processing
+- Node.js demo application with auto-instrumentation and trace propagation
+
+**Technologies**: Ingress-NGINX, Kubernetes (Kind), OpenTelemetry, Node.js, Helm
+
 ### [Host Metrics Collection](./hostmetrics/)
 Demonstrates collecting system-level metrics from Kubernetes nodes using the OpenTelemetry Collector's hostmetrics receiver:
 - 2-node Kind cluster setup
