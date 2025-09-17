@@ -1,0 +1,56 @@
+controller:
+  config:
+    enable-opentelemetry: "true"
+    otlp-collector-host: "otel-collector-opentelemetry-collector.opentelemetry.svc"
+    otlp-collector-port: "4317"
+    otel-service-name: "ingress-nginx"
+    otel-sampler-ratio: "1.0"
+    otel-sampler: "AlwaysOn"
+    # Default nginx upstream log format with trace_id and span_id appended
+    log-format-upstream: '$remote_addr - $remote_user [$time_local] "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent" $request_length $request_time [$proxy_upstream_name] [$proxy_alternative_upstream_name] $upstream_addr $upstream_response_length $upstream_response_time $upstream_status $req_id trace_id=$opentelemetry_trace_id span_id=$opentelemetry_span_id'
+
+  # Enable metrics and tracing
+  metrics:
+    enabled: true
+    service:
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "10254"
+    serviceMonitor:
+      enabled: false
+
+  # Add Prometheus annotations to pods for OpenTelemetry collector scraping
+  podAnnotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "10254"
+    prometheus.io/path: "/metrics"
+
+  # Resource configuration
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+  # Kind-specific configuration - use ingress-ready node
+  nodeSelector:
+    ingress-ready: "true"
+
+  # Tolerations for control-plane
+  tolerations:
+  - key: node-role.kubernetes.io/control-plane
+    operator: Equal
+    effect: NoSchedule
+
+  # Use hostPort for Kind
+  hostPort:
+    enabled: true
+    ports:
+      http: 80
+      https: 443
+
+  # Configure service
+  service:
+    type: NodePort
