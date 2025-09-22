@@ -1,0 +1,178 @@
+mode: daemonset
+image:
+  repository: otel/opentelemetry-collector-k8s
+
+resources:
+  limits:
+    memory: 512Mi
+  requests:
+    memory: 256Mi
+
+extraEnvs:
+  - name: DASH0_AUTH_TOKEN
+    valueFrom:
+      secretKeyRef:
+        name: dash0-secrets
+        key: dash0-authorization-token
+  - name: DASH0_ENDPOINT_OTLP_GRPC_HOSTNAME
+    valueFrom:
+      secretKeyRef:
+        name: dash0-secrets
+        key: dash0-grpc-hostname
+  - name: DASH0_ENDPOINT_OTLP_GRPC_PORT
+    valueFrom:
+      secretKeyRef:
+        name: dash0-secrets
+        key: dash0-grpc-port
+
+clusterRole:
+  create: true
+  rules:
+    - apiGroups: [""]
+      resources: ["nodes/proxy"]
+      verbs: ["get"]
+
+tolerations:
+  - key: node-role.kubernetes.io/control-plane
+    operator: Exists
+    effect: NoSchedule
+
+presets:
+  logsCollection:
+    enabled: true
+  kubernetesAttributes:
+    enabled: true
+  kubeletMetrics:
+    enabled: true
+  hostMetrics:
+    enabled: true
+
+config:
+  processors:
+    # Memory limiter to prevent OOM
+    memory_limiter:
+      check_interval: 2s
+      limit_percentage: 75
+      spike_limit_percentage: 15
+
+    # Transform processor to extract trace_id and span_id from JSON traceparent field (Contour/Envoy logs only)
+    transform/trace-extract:
+      log_statements:
+        - context: log
+          statements:
+            # Parse JSON body if it's a string and contains traceparent
+            - set(attributes["parsed_body"], ParseJSON(body)) where IsString(body) and IsMatch(body, "^\\{.*\\}$") and IsMatch(body, ".*traceparent.*")
+            # Only process logs that have traceparent field
+            - set(trace_id.string, Substring(attributes["parsed_body"]["traceparent"], 3, 32)) where attributes["parsed_body"]["traceparent"] != nil and IsMatch(attributes["parsed_body"]["traceparent"], "^00-[a-f0-9]{32}-[a-f0-9]{16}-[0-9a-f]{2}$")
+            - set(span_id.string, Substring(attributes["parsed_body"]["traceparent"], 36, 16)) where attributes["parsed_body"]["traceparent"] != nil and IsMatch(attributes["parsed_body"]["traceparent"], "^00-[a-f0-9]{32}-[a-f0-9]{16}-[0-9a-f]{2}$")
+            # Set in parsed body only if traceparent exists and was successfully parsed
+            - set(attributes["parsed_body"]["trace_id"], trace_id.string) where attributes["parsed_body"]["traceparent"] != nil and trace_id.string != nil
+            - set(attributes["parsed_body"]["span_id"], span_id.string) where attributes["parsed_body"]["traceparent"] != nil and span_id.string != nil
+            # Update the body only for logs that had traceparent
+            - set(body, attributes["parsed_body"]) where attributes["parsed_body"]["traceparent"] != nil
+
+    # Batch processor for efficient export
+    batch:
+      timeout: 5s
+      send_batch_size: 512
+
+    k8sattributes:
+      extract:
+        metadata:
+          - k8s.namespace.name
+          - k8s.deployment.name
+          - k8s.replicaset.name
+          - k8s.statefulset.name
+          - k8s.daemonset.name
+          - k8s.cronjob.name
+          - k8s.job.name
+          - k8s.node.name
+          - k8s.pod.name
+          - k8s.pod.uid
+          - k8s.pod.start_time
+          - k8s.container.name
+        labels:
+          - from: pod
+            key_regex: (.*)
+            tag_name: k8s.pod.label.$${1}
+        annotations:
+          - from: pod
+            key_regex: (.*)
+            tag_name: k8s.pod.annotation.$${1}
+      filter:
+        node_from_env_var: K8S_NODE_NAME
+      passthrough: false
+      pod_association:
+        - sources:
+          - from: resource_attribute
+            name: k8s.pod.ip
+        - sources:
+          - from: resource_attribute
+            name: k8s.pod.uid
+        - sources:
+          - from: connection
+
+  receivers:
+    kubeletstats:
+      insecure_skip_verify: true # For testing purposes. Remove for production.
+      metrics:
+        container.cpu.utilization:
+          enabled: false
+        k8s.node.cpu.utilization:
+          enabled: false
+        k8s.pod.cpu.utilization:
+          enabled: false
+        container.cpu.usage:
+          enabled: true
+        k8s.node.cpu.usage:
+          enabled: true
+        k8s.pod.cpu.usage:
+          enabled: true
+        k8s.pod.cpu_limit_utilization:
+          enabled: true
+        k8s.pod.cpu_request_utilization:
+          enabled: true
+        k8s.pod.memory_limit_utilization:
+          enabled: true
+        k8s.pod.memory_request_utilization:
+          enabled: true
+
+  exporters:
+    debug:
+      verbosity: detailed
+    otlp/dash0:
+      auth:
+        authenticator: bearertokenauth/dash0
+      endpoint: ${env:DASH0_ENDPOINT_OTLP_GRPC_HOSTNAME}:${env:DASH0_ENDPOINT_OTLP_GRPC_PORT}
+
+  extensions:
+    bearertokenauth/dash0:
+      scheme: Bearer
+      token: ${env:DASH0_AUTH_TOKEN}
+
+  service:
+    extensions:
+      - bearertokenauth/dash0
+      - health_check
+    pipelines:
+      logs:
+        processors:
+          - memory_limiter
+          - k8sattributes
+          - transform/trace-extract
+          - batch
+        exporters:
+          - otlp/dash0
+          - debug
+      metrics:
+        processors:
+          - memory_limiter
+          - batch
+        exporters:
+          - otlp/dash0
+      traces:
+        processors:
+          - memory_limiter
+          - batch
+        exporters:
+          - otlp/dash0

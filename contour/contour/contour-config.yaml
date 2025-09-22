@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: contour
+  namespace: projectcontour
+data:
+  contour.yaml: |
+    # Enable tracing
+    tracing:
+      includePodDetail: true
+      serviceName: "contour-gateway"
+      maxPathTagLength: 256
+      extensionService:
+        namespace: opentelemetry
+        name: otel-collector
+      customTags:
+        - tagName: "user-agent"
+          requestHeaderName: "User-Agent"
+        - tagName: "x-request-id"
+          requestHeaderName: "X-Request-ID"
+        - tagName: "environment"
+          literal: "demo"
+
+    # Access logging configuration
+    accesslog-format: envoy
+    accesslog-format-string: "{\"@timestamp\": \"%START_TIME%\", \"authority\": \"%REQ(:AUTHORITY)%\", \"bytes_received\": %BYTES_RECEIVED%, \"bytes_sent\": %BYTES_SENT%, \"duration\": %DURATION%, \"method\": \"%REQ(:METHOD)%\", \"path\": \"%REQ(X-ENVOY-ORIGINAL-PATH?:PATH)%\", \"protocol\": \"%PROTOCOL%\", \"request_id\": \"%REQ(X-REQUEST-ID)%\", \"response_code\": %RESPONSE_CODE%, \"response_flags\": \"%RESPONSE_FLAGS%\", \"traceparent\": \"%REQ(traceparent)%\", \"upstream_cluster\": \"%UPSTREAM_CLUSTER%\", \"upstream_host\": \"%UPSTREAM_HOST%\", \"upstream_service_time\": \"%RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)%\", \"user_agent\": \"%REQ(USER-AGENT)%\", \"x_forwarded_for\": \"%REQ(X-FORWARDED-FOR)%\"}"

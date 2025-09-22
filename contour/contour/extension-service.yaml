@@ -1,0 +1,10 @@
+apiVersion: projectcontour.io/v1alpha1
+kind: ExtensionService
+metadata:
+  name: otel-collector
+  namespace: opentelemetry
+spec:
+  protocol: h2c
+  services:
+    - name: otel-collector-opentelemetry-collector
+      port: 4317
