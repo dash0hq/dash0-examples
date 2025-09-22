@@ -1,0 +1,57 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: contour
+spec:
+  controllerName: projectcontour.io/gateway-controller
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: contour
+  namespace: projectcontour
+spec:
+  gatewayClassName: contour
+  listeners:
+  - name: http
+    protocol: HTTP
+    port: 80
+    allowedRoutes:
+      namespaces:
+        from: All
+---
+apiVersion: projectcontour.io/v1alpha1
+kind: ContourConfiguration
+metadata:
+  name: contourconfig-contour
+  namespace: projectcontour
+  labels:
+    gateway.networking.k8s.io/gateway-name: contour
+    projectcontour.io/owning-gateway-name: contour
+spec:
+  tracing:
+    includePodDetail: true
+    serviceName: "contour-gateway"
+    maxPathTagLength: 256
+    extensionService:
+      namespace: opentelemetry
+      name: otel-collector
+    customTags:
+      - tagName: "user-agent"
+        requestHeaderName: "User-Agent"
+      - tagName: "x-request-id"
+        requestHeaderName: "X-Request-ID"
+      - tagName: "environment"
+        literal: "demo"
+  envoy:
+    service:
+      name: envoy-contour
+      namespace: projectcontour
+    logging:
+      accessLogFormat: envoy
+      accessLogFormatString: |
+        {"@timestamp": "%START_TIME%", "authority": "%REQ(:AUTHORITY)%", "bytes_received": %BYTES_RECEIVED%, "bytes_sent": %BYTES_SENT%, "duration": %DURATION%, "method": "%REQ(:METHOD)%", "path": "%REQ(X-ENVOY-ORIGINAL-PATH?:PATH)%", "protocol": "%PROTOCOL%", "request_id": "%REQ(X-REQUEST-ID)%", "response_code": %RESPONSE_CODE%, "response_flags": "%RESPONSE_FLAGS%", "traceparent": "%REQ(traceparent)%", "tracestate": "%REQ(tracestate)%", "upstream_cluster": "%UPSTREAM_CLUSTER%", "upstream_host": "%UPSTREAM_HOST%", "upstream_service_time": "%RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)%", "user_agent": "%REQ(USER-AGENT)%", "x_forwarded_for": "%REQ(X-FORWARDED-FOR)%"}
+  gateway:
+    gatewayRef:
+      name: contour
+      namespace: projectcontour
