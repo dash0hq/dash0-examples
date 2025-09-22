@@ -75,9 +75,9 @@ config:
               names:
               - projectcontour
           relabel_configs:
-          - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_component]
+          - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_component, __meta_kubernetes_pod_label_app]
             action: keep
-            regex: contour
+            regex: ingress-controller;contour-contour
           - source_labels: [__address__]
             action: replace
             regex: ([^:]+)(?::\d+)?
@@ -109,9 +109,9 @@ config:
               names:
               - projectcontour
           relabel_configs:
-          - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_component]
+          - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_component, __meta_kubernetes_pod_label_app]
             action: keep
-            regex: envoy
+            regex: ingress-controller;envoy-contour
           - source_labels: [__address__]
             action: replace
             regex: ([^:]+)(?::\d+)?
