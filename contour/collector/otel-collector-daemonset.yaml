@@ -65,9 +65,6 @@ config:
             # Only process logs that have traceparent field
             - set(trace_id.string, Substring(attributes["parsed_body"]["traceparent"], 3, 32)) where attributes["parsed_body"]["traceparent"] != nil and IsMatch(attributes["parsed_body"]["traceparent"], "^00-[a-f0-9]{32}-[a-f0-9]{16}-[0-9a-f]{2}$")
             - set(span_id.string, Substring(attributes["parsed_body"]["traceparent"], 36, 16)) where attributes["parsed_body"]["traceparent"] != nil and IsMatch(attributes["parsed_body"]["traceparent"], "^00-[a-f0-9]{32}-[a-f0-9]{16}-[0-9a-f]{2}$")
-            # Set in parsed body only if traceparent exists and was successfully parsed
-            - set(attributes["parsed_body"]["trace_id"], trace_id.string) where attributes["parsed_body"]["traceparent"] != nil and trace_id.string != nil
-            - set(attributes["parsed_body"]["span_id"], span_id.string) where attributes["parsed_body"]["traceparent"] != nil and span_id.string != nil
             # Update the body only for logs that had traceparent
             - set(body, attributes["parsed_body"]) where attributes["parsed_body"]["traceparent"] != nil
 
