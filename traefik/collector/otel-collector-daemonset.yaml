@@ -49,6 +49,18 @@ presets:
 
 config:
   processors:
+    # Transform processor to extract trace_id and span_id from Traefik JSON logs
+    transform/trace-extract:
+      log_statements:
+        - context: log
+          statements:
+            # Parse JSON body if it's a string and contains TraceId and from traefik pods
+            - set(attributes["parsed_body"], ParseJSON(body)) where IsString(body) and IsMatch(body, "^\\{.*\\}$") and IsMatch(body, ".*TraceId.*") and resource.attributes["k8s.pod.label.app.kubernetes.io/name"] == "traefik"
+            # Set trace_id from parsed JSON TraceId field if from traefik pods
+            - set(trace_id.string, attributes["parsed_body"]["TraceId"]) where attributes["parsed_body"]["TraceId"] != nil and resource.attributes["k8s.pod.label.app.kubernetes.io/name"] == "traefik"
+            # Set span_id from parsed JSON SpanId field if from traefik pods
+            - set(span_id.string, attributes["parsed_body"]["SpanId"]) where attributes["parsed_body"]["SpanId"] != nil and resource.attributes["k8s.pod.label.app.kubernetes.io/name"] == "traefik"
+
     k8sattributes:
       extract:
         metadata:
@@ -125,6 +137,9 @@ config:
       - health_check
     pipelines:
       logs:
+        processors:
+          - k8sattributes
+          - transform/trace-extract
         exporters:
           - otlp/dash0
       metrics:
