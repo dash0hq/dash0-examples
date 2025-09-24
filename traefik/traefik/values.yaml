@@ -56,6 +56,9 @@ additionalArguments:
 metrics:
   otlp:
     enabled: true
+    addRoutersLabels: true
+    addServicesLabels: true
+    addEntryPointsLabels: true
     http:
       enabled: true
       endpoint: http://otel-collector-opentelemetry-collector.opentelemetry.svc.cluster.local:4318/v1/metrics
