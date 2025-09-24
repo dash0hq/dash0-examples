@@ -25,7 +25,8 @@ Examples showing how to configure and deploy the OpenTelemetry Collector in vari
 ### [Traefik Ingress with Observability](./traefik/)
 A complete Traefik ingress controller demo with full observability using OpenTelemetry and Dash0. This demo showcases:
 - Multi-node Kind cluster with Traefik v3.5 as ingress controller
-- OTLP metrics and distributed tracing from Traefik
+- OTLP metrics, distributed tracing, and logs export from Traefik (HTTP/gRPC)
+- Direct OTLP log export with automatic trace correlation (experimental otlpLogs feature)
 - OpenTelemetry Collectors (DaemonSet + Deployment) for comprehensive telemetry collection
 - Node.js demo application with auto-instrumentation and trace propagation
 - Load generation scripts for testing observability
