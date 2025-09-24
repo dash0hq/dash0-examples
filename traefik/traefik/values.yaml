@@ -28,11 +28,29 @@ ingressRoute:
 api:
   insecure: true
 
-# Access logs configuration
+# Experimental features
+experimental:
+  otlpLogs: true
+
+# Logs configuration
 logs:
+  general:
+    format: json
+    level: INFO
   access:
     enabled: true
     format: json
+
+additionalArguments:
+  - --experimental.otlpLogs=true
+  - --log.otlp=true
+  - --log.otlp.grpc=true
+  - --log.otlp.grpc.insecure=true
+  - --log.otlp.grpc.endpoint=otel-collector-opentelemetry-collector.opentelemetry.svc.cluster.local:4317
+  - --accesslog.otlp=true
+  - --accesslog.otlp.grpc=true
+  - --accesslog.otlp.grpc.insecure=true
+  - --accesslog.otlp.grpc.endpoint=otel-collector-opentelemetry-collector.opentelemetry.svc.cluster.local:4317
 
 # Metrics configuration
 metrics:
