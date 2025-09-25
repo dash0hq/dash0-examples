@@ -1,0 +1,39 @@
+# Emissary-ingress Helm values for OpenTelemetry observability
+# Simplified configuration based on standard chart values
+
+replicaCount: 2
+
+# Environment variables for telemetry
+env:
+  AMBASSADOR_CLUSTER_ID: "emissary-demo"
+
+# Resources
+resources:
+  limits:
+    cpu: 1000m
+    memory: 600Mi
+  requests:
+    cpu: 200m
+    memory: 300Mi
+
+# Service configuration
+service:
+  type: LoadBalancer
+
+# Enable admin service
+adminService:
+  create: true
+  type: ClusterIP
+  port: 8877
+
+# Security context
+podSecurityContext:
+  runAsNonRoot: true
+
+# Create RBAC resources
+rbac:
+  create: true
+
+# Service account
+serviceAccount:
+  create: true

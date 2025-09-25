@@ -1,0 +1,40 @@
+---
+apiVersion: getambassador.io/v3alpha1
+kind: Module
+metadata:
+  name: ambassador
+  namespace: emissary
+spec:
+  config:
+    # Enable service tags for better metrics
+    service_name: emissary-ingress
+    cluster: emissary-demo
+
+    # Enable access logging with structured format and trace correlation (matches Contour structure)
+    enable_envoy_logs: true
+    envoy_log_type: json
+    envoy_log_format:
+      "@timestamp": "%START_TIME%"
+      authority: "%REQ(:AUTHORITY)%"
+      bytes_received: "%BYTES_RECEIVED%"
+      bytes_sent: "%BYTES_SENT%"
+      duration: "%DURATION%"
+      method: "%REQ(:METHOD)%"
+      path: "%REQ(X-ENVOY-ORIGINAL-PATH?:PATH)%"
+      protocol: "%PROTOCOL%"
+      request_id: "%REQ(X-REQUEST-ID)%"
+      response_code: "%RESPONSE_CODE%"
+      response_flags: "%RESPONSE_FLAGS%"
+      traceparent: "%REQ(traceparent)%"
+      upstream_cluster: "%UPSTREAM_CLUSTER%"
+      upstream_host: "%UPSTREAM_HOST%"
+      upstream_service_time: "%RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)%"
+      user_agent: "%REQ(USER-AGENT)%"
+      x_forwarded_for: "%REQ(X-FORWARDED-FOR)%"
+
+    # Configure stats and metrics
+    diagnostics:
+      enabled: true
+
+    # Set the default tracing service
+    default_tracing_service: otel-tracing

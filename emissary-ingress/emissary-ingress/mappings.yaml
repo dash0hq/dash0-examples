@@ -1,0 +1,28 @@
+---
+# Mapping for Node.js application
+apiVersion: getambassador.io/v3alpha1
+kind: Mapping
+metadata:
+  name: nodejs-app-mapping
+  namespace: emissary
+spec:
+  hostname: node.dash0-examples.com
+  prefix: /
+  service: nodejs-app.demo.svc.cluster.local:3000
+  timeout_ms: 30000
+  idle_timeout_ms: 60000
+
+---
+# Host configuration
+apiVersion: getambassador.io/v3alpha1
+kind: Host
+metadata:
+  name: node-dash0-examples-com
+  namespace: emissary
+spec:
+  hostname: node.dash0-examples.com
+  acmeProvider:
+    authority: none
+  requestPolicy:
+    insecure:
+      action: Route
