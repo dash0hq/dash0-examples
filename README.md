@@ -43,6 +43,17 @@ A complete ingress-nginx controller demo with full observability using OpenTelem
 
 **Technologies**: Ingress-NGINX, Kubernetes (Kind), OpenTelemetry, Node.js, Helm
 
+### [Emissary-ingress with Observability](./emissary-ingress/)
+A complete Emissary-ingress controller demo with full observability using OpenTelemetry and Dash0. This demo showcases:
+- Multi-node Kind cluster with Emissary-ingress v3.12.2 as ingress controller
+- OTLP metrics and distributed tracing from Emissary-ingress
+- JSON structured access logs with sequential transform processors for trace correlation
+- OpenTelemetry Collectors (DaemonSet + Deployment) for comprehensive telemetry collection
+- Node.js demo application with auto-instrumentation and trace propagation
+- Load generation scripts for testing observability
+
+**Technologies**: Emissary-ingress, Kubernetes (Kind), OpenTelemetry, Node.js, Helm
+
 ### [Contour with Gateway API](./contour/)
 A complete Contour ingress controller demo with full observability using OpenTelemetry and Dash0. This demo showcases:
 - Multi-node Kind cluster with Contour/Envoy using Gateway API
