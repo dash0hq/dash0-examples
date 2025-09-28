@@ -87,12 +87,6 @@ config:
     kubeletstats:
       insecure_skip_verify: true # For testing purposes. Remove for production.
       metrics:
-        container.cpu.utilization:
-          enabled: false
-        k8s.node.cpu.utilization:
-          enabled: false
-        k8s.pod.cpu.utilization:
-          enabled: false
         container.cpu.usage:
           enabled: true
         k8s.node.cpu.usage:
