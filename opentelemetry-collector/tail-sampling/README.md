@@ -93,6 +93,7 @@ Sends three spans with the same trace ID, where the last span has ERROR status. 
 Sends three spans with the same trace ID, with 1+ second delays between spans. The collector will:
 1. Collect all spans for the trace (waits up to 5s)
 2. Calculate trace latency and sample due to slow-traces-policy (> 1000ms)
+   - **Note**: Latency is calculated based on the trace duration - the difference between the earliest start time and latest end time across all spans in the trace, without considering what happened in between
 3. Filter matching spans using the filter processor
 4. Apply transformations with the transform processor
 5. Batch the spans with the batch processor
