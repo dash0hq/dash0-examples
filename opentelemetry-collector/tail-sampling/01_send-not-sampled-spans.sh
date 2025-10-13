@@ -39,14 +39,14 @@ curl http://localhost:4318/v1/traces \
               "flags": 0,
               "kind": 1,
               "links": [],
-              "name": "Manually Ingested Span - drop me",
+              "name": "Manually Ingested Span",
               "traceId": "'$(date +%s)'805a7c87bc2f6dab94a7f4",
               "parentSpanId": "",
               "spanId": "e42ea8f8e32c0e68",
               "traceState": "",
               "status": {
                 "code": 0,
-                "message": "Tail sampling - dropped"
+                "message": "Healthy (Unset) span - not sampled"
               }
             },
             {
@@ -62,14 +62,14 @@ curl http://localhost:4318/v1/traces \
               "flags": 0,
               "kind": 1,
               "links": [],
-              "name": "sample me",
+              "name": "Manually Ingested Span",
               "traceId": "'$(date +%s)'705a7c87bc2f6dab94a7f4",
               "parentSpanId": "",
               "spanId": "e42ea8f8e32c0e78",
               "traceState": "",
               "status": {
-                "code": 2,
-                "message": "Tail sampling  - I will not be dropped"
+                "code": 1,
+                "message": "Healthy (OK) span - not sampled"
               }
             }
           ]

@@ -38,7 +38,7 @@ This will:
 To test the collector, you can send two sample spans (one of which will be dropped):
 
 ```bash
-./01_send-spans.sh
+./01_send-not-sampled-spans.sh
 ```
 
 This script sends a sample trace span to the collector using the HTTP endpoint (port 4318). The collector will:

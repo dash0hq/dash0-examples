@@ -9,29 +9,23 @@ receivers:
 processors:
   tail_sampling:
     # How long to wait for all spans of a trace before making a decision
-    decision_wait: 10s
+    decision_wait: 5s
     # Max number of traces to keep in memory while waiting
-    num_traces: 100000
+    num_traces: 1000
 
     policies:
-      # 1. Policy to sample traces with an error status
+      # Policy to sample traces with an error status
       - name: error-traces-policy
         type: status_code
         status_code:
           status_codes: [ "ERROR" ]
 
-      # 2. Policy to sample traces with high latency (e.g., > 1000ms)
+      # Policy to sample traces with high latency (e.g., > 1000ms)
       - name: slow-traces-policy
         type: latency
         latency:
           threshold_ms: 1000
 
-      # 3. Policy to randomly sample a percentage of the remaining traces (e.g., 20%)
-      # Disabled so we can test NON-SAMPLED traces
-#      - name: random-sample-policy
-#        type: probabilistic
-#        probabilistic:
-#          sampling_percentage: 20
   batch: {}
   filter:
     error_mode: ignore
