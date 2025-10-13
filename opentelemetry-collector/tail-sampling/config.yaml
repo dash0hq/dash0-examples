@@ -1,0 +1,92 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  tail_sampling:
+    # How long to wait for all spans of a trace before making a decision
+    decision_wait: 10s
+    # Max number of traces to keep in memory while waiting
+    num_traces: 100000
+
+    policies:
+      # 1. Policy to sample traces with an error status
+      - name: error-traces-policy
+        type: status_code
+        status_code:
+          status_codes: [ "ERROR" ]
+
+      # 2. Policy to sample traces with high latency (e.g., > 1000ms)
+      - name: slow-traces-policy
+        type: latency
+        latency:
+          threshold_ms: 1000
+
+      # 3. Policy to randomly sample a percentage of the remaining traces (e.g., 20%)
+      # Disabled so we can test NON-SAMPLED traces
+#      - name: random-sample-policy
+#        type: probabilistic
+#        probabilistic:
+#          sampling_percentage: 20
+  batch: {}
+  filter:
+    error_mode: ignore
+    metrics:
+      datapoint:
+        - 'IsMatch(ConvertCase(String(metric.name), "lower"), "^k8s\\.replicaset\\.")'
+    traces:
+      span:
+        - 'span.name == "drop me"'
+  transform:
+    error_mode: ignore
+    log_statements:
+      - context: log
+        statements:
+          - set(log.observed_time, Now()) where log.observed_time_unix_nano == 0
+          - set(log.time, log.observed_time) where log.time_unix_nano == 0
+
+exporters:
+  otlp/dash0:
+    endpoint: ${env:DASH0_ENDPOINT_OTLP_GRPC_HOSTNAME}:${env:DASH0_ENDPOINT_OTLP_GRPC_PORT}
+    headers:
+      Authorization: Bearer ${env:DASH0_AUTH_TOKEN}
+      Dash0-Dataset: ${env:DASH0_DATASET}
+  debug:
+    verbosity: detailed
+
+service:
+  telemetry:
+    logs:
+      level: ${env:OPENTELEMETRY_COLLECTOR_LOG_LEVEL}
+  pipelines:
+    logs:
+      receivers:
+        - otlp
+      exporters:
+        - debug
+        - otlp/dash0
+    traces:
+      receivers:
+        - otlp
+      processors:
+        - tail_sampling
+        - filter
+        - transform
+        - batch
+      exporters:
+        - debug
+        - otlp/dash0
+    metrics:
+      receivers:
+        - otlp
+      processors:
+        - filter
+        - transform
+        - batch
+      exporters:
+        - debug
+        - otlp/dash0
