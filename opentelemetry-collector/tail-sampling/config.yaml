@@ -88,6 +88,10 @@ processors:
           error_mode: ignore,
           span: [
             "resource.attributes[\"policy.group\"] == \"ottl-condition-sampling\"",
+            "attributes[\"endpoint.name\"] == \"some-endpoint\""
+          ],
+          spanevent: [
+            "name == \"example.event\""
           ]
         }
 
