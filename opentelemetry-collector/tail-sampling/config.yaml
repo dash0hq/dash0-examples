@@ -82,18 +82,33 @@ processors:
                 key: policy.group
                 values: ["probabilistic-sampling"]
                 enabled_regex_matching: false
+      # ========================================
+      # POLICY GROUP: ottl-condition-sampling
+      # ========================================
+      # Samples traces with policy.group="ottl-condition-sampling"
       - name: ottl-condition-policy
-        type: ottl_condition
-        ottl_condition: {
-          error_mode: ignore,
-          span: [
-            "resource.attributes[\"policy.group\"] == \"ottl-condition-sampling\"",
-            "attributes[\"endpoint.name\"] == \"some-endpoint\""
-          ],
-          spanevent: [
-            "name == \"example.event\""
-          ]
-        }
+        type: and
+        and:
+          and_sub_policy:
+            # Sample by ottl condition
+            - name: ottl_condition-sub-policy
+              type: ottl_condition
+              ottl_condition: {
+                error_mode: ignore,
+                span: [
+                  "resource.attributes[\"service.name\"] == \"frontend\""
+                ],
+                spanevent: [
+                  "name == \"example.event\""
+                ]
+              }
+            # Check for policy group attribute
+            - name: ottl-condition-sampling-group
+              type: string_attribute
+              string_attribute:
+                key: policy.group
+                values: [ "ottl-condition-sampling" ]
+                enabled_regex_matching: false
 
   batch: {}
   filter:

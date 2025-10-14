@@ -4,6 +4,13 @@ set -eo pipefail
 
 source ../../.env
 
+# Single trace ID to be shared across all spans
+TRACE_ID_1="$(date +%s)805a7c87bc2f6dab95a7f1"
+TRACE_ID_2="$(date +%s)805a7c87bc2f6dab95a7f2"
+
+# For testing purposes, set num_traces: 1 in config.yaml
+
+# Send 1st span which should be sampled
 curl http://localhost:4318/v1/traces \
   -X POST \
   -H "Content-Type: application/json" \
@@ -19,7 +26,7 @@ curl http://localhost:4318/v1/traces \
           },
           {
             "key": "policy.group",
-            "value": { "stringValue": "ottl-condition-sampling" }
+            "value": { "stringValue": "error-sampling" }
           }
         ]
       },
@@ -44,13 +51,13 @@ curl http://localhost:4318/v1/traces \
               "kind": 1,
               "links": [],
               "name": "Manually Ingested Span",
-              "traceId": "'$(date +%s)805a7c87bc2f6dab94a7f1'",
+              "traceId": "'$TRACE_ID_1'",
               "parentSpanId": "",
               "spanId": "e12ea8f8e32c0e61",
               "traceState": "",
               "status": {
-                "code": 0,
-                "message": "Frontend - UNSET"
+                "code": 2,
+                "message": "Frontend - ERROR"
               }
             }
           ]
@@ -60,9 +67,10 @@ curl http://localhost:4318/v1/traces \
   ]
 }'
 
-# Simulate minimal latency
-sleep .1
+sleep 6
 
+# Send a span with different trace ID to evict the first one from the num_traces cache
+# This one should not get sampled
 curl http://localhost:4318/v1/traces \
   -X POST \
   -H "Content-Type: application/json" \
@@ -78,7 +86,7 @@ curl http://localhost:4318/v1/traces \
           },
           {
             "key": "policy.group",
-            "value": { "stringValue": "ottl-condition-sampling" }
+            "value": { "stringValue": "error-sampling" }
           }
         ]
       },
@@ -98,25 +106,72 @@ curl http://localhost:4318/v1/traces \
               ],
               "startTimeUnixNano": "'$(date +%s%N)'",
               "endTimeUnixNano": "'$(date +%s%N)'",
-              "events": [
-                {
-                  "timeUnixNano": "'$(date +%s%N)'",
-                  "name": "example.event",
-                  "attributes": [
-                    {
-                      "key": "example.attribute",
-                      "value": { "stringValue": "example.value" }
-                    }
-                  ]
-                }
-              ],
+              "events": [],
               "flags": 0,
               "kind": 1,
               "links": [],
               "name": "Manually Ingested Span",
-              "traceId": "'$(date +%s)805a7c87bc2f6dab94a7f2'",
+              "traceId": "'$TRACE_ID_2'",
               "parentSpanId": "",
               "spanId": "e12ea8f8e32c0e62",
+              "traceState": "",
+              "status": {
+                "code": 0,
+                "message": "Frontend - UNSET"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}'
+
+# Wait more than we specified via decision_wait parameter
+sleep 6
+
+# Send a 3rd span with the same trace ID as the 1st
+# This one shouldn't be sampled by default,
+# but will be sampled because we configured sampled_cache_size
+curl http://localhost:4318/v1/traces \
+  -X POST \
+  -H "Content-Type: application/json" \
+  -d '
+{
+  "resourceSpans": [
+    {
+      "resource": {
+        "attributes": [
+          {
+            "key": "service.name",
+            "value": { "stringValue": "frontend" }
+          }
+        ]
+      },
+      "scopeSpans": [
+        {
+          "schemaUrl": "",
+          "scope": {
+            "attributes": []
+          },
+          "spans": [
+            {
+              "attributes": [
+                {
+                  "key": "endpoint.name",
+                  "value": { "stringValue": "OTLP via HTTP" }
+                }
+              ],
+              "startTimeUnixNano": "'$(date +%s%N)'",
+              "endTimeUnixNano": "'$(date +%s%N)'",
+              "events": [],
+              "flags": 0,
+              "kind": 1,
+              "links": [],
+              "name": "Manually Ingested Span",
+              "traceId": "'$TRACE_ID_1'",
+              "parentSpanId": "",
+              "spanId": "e12ea8f8e32c0e63",
               "traceState": "",
               "status": {
                 "code": 0,
