@@ -36,7 +36,8 @@ This will:
 
 ## Tail Sampling Configuration
 
-The collector is configured with tail sampling policies organized into **policy groups**. Each test script targets a specific policy group using the `policy.group` resource attribute, ensuring that traces are evaluated only by their designated policy group.
+The collector is configured with tail sampling policies organized into **policy groups**. 
+Each test script targets a specific policy group using the `policy.group` resource attribute, ensuring that traces are evaluated only by their designated policy group.
 
 ### Policy Groups:
 
@@ -127,19 +128,3 @@ Sends three spans with the same trace ID and `policy.group="probabilistic-sampli
 2. Match the probabilistic-sampling policy group due to policy.group attribute
 3. Sample 50% of traces based on probabilistic sampling
 4. **Note**: Run this script multiple times to observe the sampling behavior - approximately half of the traces will be sampled
-
-## Policy Type Limitations
-
-### Composite Policies and Policy Groups
-
-**Important**: The `composite` policy type cannot be used with policy group isolation.
-
-Composite policies use OR logic to evaluate multiple sub-policies (e.g., sample if trace has error OR high latency OR specific service). However, the OTel Collector's tail sampling processor does not allow nesting a `composite` policy inside an `and` policy's sub-policies. This means you cannot combine:
-- `policy.group` attribute check (to isolate the policy group)
-- With a `composite` policy (for OR logic between conditions)
-
-**Workaround**: If you need composite policy behavior, you must choose between:
-1. Policy group isolation (using `and` policies as shown in this example)
-2. Composite OR logic (which will apply to all traces, not just a specific policy group)
-
-This example prioritizes policy group isolation to demonstrate clear separation between different sampling strategies.
