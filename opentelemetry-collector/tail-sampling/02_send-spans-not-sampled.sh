@@ -19,6 +19,10 @@ curl http://localhost:4318/v1/traces \
           {
             "key": "service.name",
             "value": { "stringValue": "frontend" }
+          },
+          {
+            "key": "policy.group",
+            "value": { "stringValue": "error-sampling" }
           }
         ]
       },
@@ -71,6 +75,10 @@ curl http://localhost:4318/v1/traces \
           {
             "key": "service.name",
             "value": { "stringValue": "backend-billing" }
+          },
+          {
+            "key": "policy.group",
+            "value": { "stringValue": "error-sampling" }
           }
         ]
       },
@@ -123,6 +131,10 @@ curl http://localhost:4318/v1/traces \
           {
             "key": "service.name",
             "value": { "stringValue": "backend-api" }
+          },
+          {
+            "key": "policy.group",
+            "value": { "stringValue": "error-sampling" }
           }
         ]
       },
@@ -162,3 +174,10 @@ curl http://localhost:4318/v1/traces \
     }
   ]
 }'
+
+echo -e "\nThree spans sent with shared traceId: ${TRACE_ID}"
+echo "This trace will NOT be sampled because:"
+echo "  - policy.group='error-sampling' matches the error-traces-policy group"
+echo "  - BUT all spans have OK/UNSET status (no ERROR status code)"
+echo "  - The error-traces-policy requires BOTH conditions, so the trace is dropped"
+echo "  - Demonstrates policy evaluation where the policy group matches but sampling condition doesn't"

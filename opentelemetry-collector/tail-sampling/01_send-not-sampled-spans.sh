@@ -78,3 +78,8 @@ curl http://localhost:4318/v1/traces \
     }
   ]
 }'
+
+echo -e "\nTwo spans sent with different trace IDs (UNSET and OK status codes)"
+echo "These spans will NOT be sampled because:"
+echo "  - They don't have a policy.group attribute, so no policy group will match them"
+echo "  - Without a matching policy group, they will be dropped by the tail sampling processor"

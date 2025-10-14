@@ -14,17 +14,70 @@ processors:
     num_traces: 1000
 
     policies:
-      # Policy to sample traces with an error status
+      # ========================================
+      # POLICY GROUP: error-sampling
+      # ========================================
+      # Composite policy that samples traces with ERROR status
+      # AND have policy.group="error-sampling" resource attribute
       - name: error-traces-policy
-        type: status_code
-        status_code:
-          status_codes: [ "ERROR" ]
+        type: and
+        and:
+          and_sub_policy:
+            # Check for error status
+            - name: has-error-status
+              type: status_code
+              status_code:
+                status_codes: [ "ERROR" ]
+            # Check for policy group attribute
+            - name: error-sampling-group
+              type: string_attribute
+              string_attribute:
+                key: policy.group
+                values: ["error-sampling"]
+                enabled_regex_matching: false
 
-      # Policy to sample traces with high latency (e.g., > 1000ms)
+      # ========================================
+      # POLICY GROUP: latency-sampling
+      # ========================================
+      # Composite policy that samples traces with high latency
+      # AND have policy.group="latency-sampling" resource attribute
       - name: slow-traces-policy
-        type: latency
-        latency:
-          threshold_ms: 1000
+        type: and
+        and:
+          and_sub_policy:
+            # Check for high latency
+            - name: has-high-latency
+              type: latency
+              latency:
+                threshold_ms: 1000
+            # Check for policy group attribute
+            - name: latency-sampling-group
+              type: string_attribute
+              string_attribute:
+                key: policy.group
+                values: ["latency-sampling"]
+                enabled_regex_matching: false
+
+      # ========================================
+      # POLICY GROUP: probabilistic-sampling
+      # ========================================
+      # Samples 50% of traces with policy.group="probabilistic-sampling"
+      - name: probabilistic-policy
+        type: and
+        and:
+          and_sub_policy:
+            # Sample 50% of traces
+            - name: probabilistic-50-percent
+              type: probabilistic
+              probabilistic:
+                sampling_percentage: 50
+            # Check for policy group attribute
+            - name: probabilistic-sampling-group
+              type: string_attribute
+              string_attribute:
+                key: policy.group
+                values: ["probabilistic-sampling"]
+                enabled_regex_matching: false
 
   batch: {}
   filter:

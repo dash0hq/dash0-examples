@@ -5,7 +5,7 @@ set -eo pipefail
 source ../../.env
 
 # Single trace ID to be shared across all spans
-TRACE_ID="$(date +%s)805a7c87bc2f6dab95a7f2"
+TRACE_ID="$(date +%s)805a7c87bc2f6dab95a7f5"
 
 curl http://localhost:4318/v1/traces \
   -X POST \
@@ -22,7 +22,7 @@ curl http://localhost:4318/v1/traces \
           },
           {
             "key": "policy.group",
-            "value": { "stringValue": "error-sampling" }
+            "value": { "stringValue": "probabilistic-sampling" }
           }
         ]
       },
@@ -49,11 +49,11 @@ curl http://localhost:4318/v1/traces \
               "name": "Manually Ingested Span",
               "traceId": "'$TRACE_ID'",
               "parentSpanId": "",
-              "spanId": "e22ea8f8e32c0e61",
+              "spanId": "e42ea8f8e32c0e61",
               "traceState": "",
               "status": {
-                "code": 0,
-                "message": "Frontend - UNSET"
+                "code": 1,
+                "message": "Frontend - OK"
               }
             }
           ]
@@ -63,7 +63,7 @@ curl http://localhost:4318/v1/traces \
   ]
 }'
 
-# Simulate minimum latency
+# Simulate minimal latency
 sleep .1
 
 curl http://localhost:4318/v1/traces \
@@ -81,7 +81,7 @@ curl http://localhost:4318/v1/traces \
           },
           {
             "key": "policy.group",
-            "value": { "stringValue": "error-sampling" }
+            "value": { "stringValue": "probabilistic-sampling" }
           }
         ]
       },
@@ -107,8 +107,8 @@ curl http://localhost:4318/v1/traces \
               "links": [],
               "name": "Manually Ingested Span",
               "traceId": "'$TRACE_ID'",
-              "parentSpanId": "e22ea8f8e32c0e61",
-              "spanId": "e22ea8f8e32c0e62",
+              "parentSpanId": "e42ea8f8e32c0e61",
+              "spanId": "e42ea8f8e32c0e62",
               "traceState": "",
               "status": {
                 "code": 1,
@@ -122,8 +122,8 @@ curl http://localhost:4318/v1/traces \
   ]
 }'
 
-# Simulate minimum latency
-sleep .2
+# Simulate minimal latency
+sleep .1
 
 curl http://localhost:4318/v1/traces \
   -X POST \
@@ -140,7 +140,7 @@ curl http://localhost:4318/v1/traces \
           },
           {
             "key": "policy.group",
-            "value": { "stringValue": "error-sampling" }
+            "value": { "stringValue": "probabilistic-sampling" }
           }
         ]
       },
@@ -164,14 +164,14 @@ curl http://localhost:4318/v1/traces \
               "flags": 0,
               "kind": 1,
               "links": [],
-              "name": "Manually Ingested Span - error sampled",
+              "name": "Manually Ingested Span - probabilistic sampled",
               "traceId": "'$TRACE_ID'",
-              "parentSpanId": "e22ea8f8e32c0e62",
-              "spanId": "e22ea8f8e32c0e63",
+              "parentSpanId": "e42ea8f8e32c0e62",
+              "spanId": "e42ea8f8e32c0e63",
               "traceState": "",
               "status": {
-                "code": 2,
-                "message": "Backend API - ERROR"
+                "code": 1,
+                "message": "Backend API - OK"
               }
             }
           ]
@@ -181,8 +181,5 @@ curl http://localhost:4318/v1/traces \
   ]
 }'
 
-echo -e "\nError spans sent with traceId: ${TRACE_ID}"
-echo "This trace WILL be sampled because:"
-echo "  - policy.group='error-sampling' matches the error-traces-policy group"
-echo "  - The last span has ERROR status code"
-echo "  - The entire trace will be sampled and exported to Dash0"
+echo -e "\nProbabilistic sampling spans sent with traceId: ${TRACE_ID}"
+echo "Note: This trace has a 50% chance of being sampled. Run multiple times to see the sampling behavior."

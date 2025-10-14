@@ -36,12 +36,23 @@ This will:
 
 ## Tail Sampling Configuration
 
-The collector is configured with the following tail sampling policies:
+The collector is configured with tail sampling policies organized into **policy groups**. Each test script targets a specific policy group using the `policy.group` resource attribute, ensuring that traces are evaluated only by their designated policy group.
 
-1. **Error Traces Policy**: Samples all traces containing spans with ERROR status
-2. **Slow Traces Policy**: Samples traces with latency exceeding 1000ms
+### Policy Groups:
+
+1. **error-sampling**: Samples all traces containing spans with ERROR status AND `policy.group="error-sampling"`
+2. **latency-sampling**: Samples traces with latency exceeding 1000ms AND `policy.group="latency-sampling"`
+3. **probabilistic-sampling**: Samples 50% of traces with `policy.group="probabilistic-sampling"`
 
 The tail sampling processor waits for 5 seconds to collect all spans in a trace before making a sampling decision.
+
+### How Policy Grouping Works
+
+Policy groups are implemented using composite `and` policies that combine:
+- The actual sampling logic (error status, latency threshold, etc.)
+- A resource attribute check for `policy.group`
+
+This ensures that each trace is only evaluated by its designated policy group, preventing cross-policy interference even though all traces flow through the same collector.
 
 ## Testing Tail Sampling
 
@@ -58,44 +69,77 @@ Sends two spans with UNSET and OK status codes. These will not be sampled since 
 2. Drop the spans as they don't match sampling policies
 3. No further processing or export occurs
 
-### 2. Send multiple non-sampled spans in a single trace
+### 2. Send multiple non-sampled spans in a single trace (error-sampling group)
 
 ```bash
 ./02_send-spans-not-sampled.sh
 ```
 
-Sends three spans (frontend, backend-billing, backend-api) with the same trace ID, all with OK/UNSET status. The collector will:
+Sends three spans (frontend, backend-billing, backend-api) with the same trace ID and `policy.group="error-sampling"`, all with OK/UNSET status. The collector will:
 1. Collect all spans for the trace (waits up to 5s)
-2. Evaluate against tail sampling policies
-3. Drop the entire trace as it doesn't match any policy
+2. Evaluate against the error-traces-policy:
+   - Policy group matches ✅ (`policy.group="error-sampling"`)
+   - Error status check fails ❌ (no ERROR spans)
+3. Drop the entire trace because the policy requires BOTH conditions (AND logic)
+4. Demonstrates how a trace can match the policy group but still be dropped due to unmet sampling conditions
 
-### 3. Send spans with an error (sampled)
+### 3. Send spans with an error (error-sampling group)
 
 ```bash
 ./03_send-spans-error-sampled.sh
 ```
 
-Sends three spans with the same trace ID, where the last span has ERROR status. The collector will:
+Sends three spans with the same trace ID and `policy.group="error-sampling"`, where the last span has ERROR status. The collector will:
 1. Collect all spans for the trace (waits up to 5s)
-2. Detect ERROR status and sample the entire trace (error-traces-policy)
-3. Filter matching spans using the filter processor
-4. Apply transformations with the transform processor
-5. Batch the spans with the batch processor
-6. Output to the debug exporter (visible in logs)
-7. Forward to Dash0 using the OTLP exporter
+2. Match the error-sampling policy group due to policy.group attribute
+3. Detect ERROR status and sample the entire trace (error-traces-policy)
+4. Filter matching spans using the filter processor
+5. Apply transformations with the transform processor
+6. Batch the spans with the batch processor
+7. Output to the debug exporter (visible in logs)
+8. Forward to Dash0 using the OTLP exporter
 
-### 4. Send spans with high latency (sampled)
+### 4. Send spans with high latency (latency-sampling group)
 
 ```bash
 ./04_send-spans-high-latency-sampled.sh
 ```
 
-Sends three spans with the same trace ID, with 1+ second delays between spans. The collector will:
+Sends three spans with the same trace ID and `policy.group="latency-sampling"`, with 1+ second delays between spans. The collector will:
 1. Collect all spans for the trace (waits up to 5s)
-2. Calculate trace latency and sample due to slow-traces-policy (> 1000ms)
+2. Match the latency-sampling policy group due to policy.group attribute
+3. Calculate trace latency and sample due to slow-traces-policy (> 1000ms)
    - **Note**: Latency is calculated based on the trace duration - the difference between the earliest start time and latest end time across all spans in the trace, without considering what happened in between
-3. Filter matching spans using the filter processor
-4. Apply transformations with the transform processor
-5. Batch the spans with the batch processor
-6. Output to the debug exporter (visible in logs)
-7. Forward to Dash0 using the OTLP exporter
+4. Filter matching spans using the filter processor
+5. Apply transformations with the transform processor
+6. Batch the spans with the batch processor
+7. Output to the debug exporter (visible in logs)
+8. Forward to Dash0 using the OTLP exporter
+
+### 5. Send spans with probabilistic sampling (probabilistic-sampling group)
+
+```bash
+./05_send-spans-probabilistic-sampled.sh
+```
+
+Sends three spans with the same trace ID and `policy.group="probabilistic-sampling"`. The collector will:
+1. Collect all spans for the trace (waits up to 5s)
+2. Match the probabilistic-sampling policy group due to policy.group attribute
+3. Sample 50% of traces based on probabilistic sampling
+4. **Note**: Run this script multiple times to observe the sampling behavior - approximately half of the traces will be sampled
+
+## Policy Type Limitations
+
+### Composite Policies and Policy Groups
+
+**Important**: The `composite` policy type cannot be used with policy group isolation.
+
+Composite policies use OR logic to evaluate multiple sub-policies (e.g., sample if trace has error OR high latency OR specific service). However, the OTel Collector's tail sampling processor does not allow nesting a `composite` policy inside an `and` policy's sub-policies. This means you cannot combine:
+- `policy.group` attribute check (to isolate the policy group)
+- With a `composite` policy (for OR logic between conditions)
+
+**Workaround**: If you need composite policy behavior, you must choose between:
+1. Policy group isolation (using `and` policies as shown in this example)
+2. Composite OR logic (which will apply to all traces, not just a specific policy group)
+
+This example prioritizes policy group isolation to demonstrate clear separation between different sampling strategies.
