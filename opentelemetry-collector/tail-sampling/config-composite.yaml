@@ -74,6 +74,8 @@ processors:
               percent: 50
             - policy: test-composite-policy-2
               percent: 25
+            - policy: test-composite-policy-3
+              percent: 25
 
   batch: {}
 

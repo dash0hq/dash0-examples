@@ -184,5 +184,5 @@ curl http://localhost:4318/v1/traces \
 echo -e "\nHigh latency spans sent with traceId: ${TRACE_ID}"
 echo "This trace WILL be sampled because:"
 echo "  - policy.group='latency-sampling' matches the slow-traces-policy group"
-echo "  - The trace has latency > 1000ms (due to 5+ second delay between spans)"
+echo "  - The trace has latency > 1000ms (due to 1+ second delay between spans)"
 echo "  - The entire trace will be sampled and exported to Dash0"

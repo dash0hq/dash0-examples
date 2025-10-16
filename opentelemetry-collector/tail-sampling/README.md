@@ -41,11 +41,11 @@ This will:
 
 ## Tail Sampling Configuration
 
-This example includes **three configuration files** demonstrating different sampling approaches:
+This example includes **four configuration files** demonstrating different sampling approaches:
 
 ### 1. `config.yaml` (Default - Policy Groups)
 The main configuration using **policy groups** for isolated sampling strategies.
-Each test script (01-07) targets a specific policy group using the `policy.group` resource attribute.
+Each test script (01-06) targets a specific policy group using the `policy.group` resource attribute.
 
 **Policy Groups:**
 1. **error-sampling**: Samples all traces containing spans with ERROR status AND `policy.group="error-sampling"`
@@ -66,6 +66,13 @@ Demonstrates the **composite policy type** with rate allocation across sub-polic
 - Total throughput: 1000 spans/s
 
 **Note**: The composite policy cannot be wrapped in an `and` policy, so it evaluates ALL traces globally (not policy-group-based).
+
+### 4. `config-decision-cache.yaml` (Decision Cache Testing)
+Demonstrates the **decision cache** feature with:
+- `num_traces: 1` to force trace eviction for testing purposes
+- `decision_cache` enabled with cache sizes of 10000 for both sampled and non-sampled decisions
+
+This configuration is specifically designed for testing how the collector handles late-arriving spans using cached sampling decisions. Used by test script 07.
 
 ### Configuration Options
 
@@ -263,25 +270,21 @@ Sends two separate traces with `policy.group="ottl-condition-sampling"`, demonst
    - Span event: name == "example.event"
 4. This demonstrates how OTTL conditions can filter based on complex criteria including span events
 
-### 7. Send spans demonstrating decision cache (requires config changes)
+### 7. Send spans demonstrating decision cache (requires `config-decision-cache.yaml`)
+
+**Important**: This test requires using the `config-decision-cache.yaml` configuration file instead of the default `config.yaml`.
 
 ```bash
+# Run the collector with the decision cache config
+./00_run.sh config-decision-cache.yaml
+
+# In another terminal, run the test script
 ./07_send-spans-decision-cache-example.sh
 ```
 
-**Important**: This test requires manual configuration changes to demonstrate decision cache behavior.
-
-**Setup steps:**
-1. Edit `config.yaml` and make these changes:
-   ```yaml
-   tail_sampling:
-     num_traces: 1  # Change from 1000 to 1
-     decision_cache:  # Uncomment these lines
-       sampled_cache_size: 10000
-       non_sampled_cache_size: 10000
-   ```
-2. Restart the collector with `./00_run.sh`
-3. Run the test script
+The `config-decision-cache.yaml` file is preconfigured with:
+- `num_traces: 1` (forces trace eviction for testing)
+- `decision_cache` enabled with cache sizes of 10000
 
 This script demonstrates how the decision cache handles late-arriving spans. It sends spans in a specific sequence to show cache behavior:
 
@@ -320,6 +323,13 @@ This script demonstrates how the decision cache handles late-arriving spans. It 
 ```
 
 Sends three spans with the same trace ID, demonstrating rate allocation across multiple sub-policies.
+
+**Metrics**: This test automatically fetches and displays tail sampling metrics from the collector's Prometheus endpoint (port 8888), including:
+- `processor_tail_sampling_count_traces_sampled` - Number of traces sampled by each policy
+- `processor_tail_sampling_count_spans_sampled` - Number of spans sampled by each policy (demonstrates rate allocation)
+- `processor_tail_sampling_global_count_traces_sampled` - Overall sampling decisions
+
+These metrics help visualize which sub-policy handled the trace and how rate allocation works.
 
 **How Composite Policy Evaluation Works:**
 
