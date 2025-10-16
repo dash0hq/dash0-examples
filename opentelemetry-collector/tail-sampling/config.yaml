@@ -17,11 +17,53 @@ processors:
 #      sampled_cache_size: 10000
 #      non_sampled_cache_size: 10000
 
+    # Sample on first match: when enabled, stops evaluating policies as soon as
+    # the first policy decides to SAMPLE (not drop) the trace
+    # Default: false (evaluates all policies before deciding)
+    #
+    # IMPORTANT: This flag ONLY stops on "Sampled" decisions, NOT on "NotSampled"
+    # (drop) decisions. If a policy decides NOT to sample, evaluation continues.
+    #
+    # How it works:
+    # - false (default): Evaluates ALL policies and aggregates their decisions.
+    #   If ANY policy says "sample", the trace is sampled (most permissive).
+    # - true: Stops immediately when a policy says "sample" (short-circuits).
+    #   Policies that would drop (NotSampled) don't stop evaluation.
+    #
+    # Use case for true:
+    # You have policies ordered by priority, and want the first positive match
+    # to sample immediately without checking lower-priority policies. This is
+    # useful for ensuring high-priority traces (errors, critical endpoints) get
+    # sampled before lower-priority policies can influence the decision.
+    #
+    # Example: Error policy first, then latency policy, then probabilistic.
+    # If an error is found, sample immediately without checking if it's also slow
+    # or checking the probabilistic policy. But if there's no error, continue
+    # evaluating the latency and probabilistic policies.
+    sample_on_first_match: false
+
+    # Policy evaluation logic (when sample_on_first_match: false):
+    # When multiple policies are configured, the processor evaluates them and
+    # aggregates their decisions using "most permissive wins" logic:
+    #
+    # - If ANY policy returns "Sampled" -> Final decision: SAMPLE the trace
+    # - If ALL policies return "NotSampled" -> Final decision: DROP the trace
+    #
+    # This means it only takes ONE policy to say "sample" for the trace to be kept,
+    # even if other policies say "not sample". This is the opposite of what you
+    # might expect - it's not "any drop means drop", it's "any sample means sample".
+    #
+    # Example with 3 policies:
+    #   Policy 1 (error): NotSampled (no error found)
+    #   Policy 2 (latency): Sampled (slow trace detected)
+    #   Policy 3 (probabilistic): NotSampled (didn't win the lottery)
+    #   Final decision: SAMPLED (because policy 2 said sample)
+
     policies:
       # ========================================
       # POLICY GROUP: error-sampling
       # ========================================
-      # Composite policy that samples traces with ERROR status
+      # AND policy that samples traces with ERROR status
       # AND have policy.group="error-sampling" resource attribute
       - name: error-traces-policy
         type: and
@@ -43,7 +85,7 @@ processors:
       # ========================================
       # POLICY GROUP: latency-sampling
       # ========================================
-      # Composite policy that samples traces with high latency
+      # AND policy that samples traces with high latency
       # AND have policy.group="latency-sampling" resource attribute
       - name: slow-traces-policy
         type: and
@@ -82,6 +124,7 @@ processors:
                 key: policy.group
                 values: ["probabilistic-sampling"]
                 enabled_regex_matching: false
+
       # ========================================
       # POLICY GROUP: ottl-condition-sampling
       # ========================================

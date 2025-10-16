@@ -36,24 +36,131 @@ This will:
 
 ## Tail Sampling Configuration
 
-The collector is configured with tail sampling policies organized into **policy groups**. 
-Each test script targets a specific policy group using the `policy.group` resource attribute, ensuring that traces are evaluated only by their designated policy group.
+This example includes **three configuration files** demonstrating different sampling approaches:
 
-### Policy Groups:
+### 1. `config.yaml` (Default - Policy Groups)
+The main configuration using **policy groups** for isolated sampling strategies.
+Each test script (01-07) targets a specific policy group using the `policy.group` resource attribute.
 
+**Policy Groups:**
 1. **error-sampling**: Samples all traces containing spans with ERROR status AND `policy.group="error-sampling"`
 2. **latency-sampling**: Samples traces with latency exceeding 1000ms AND `policy.group="latency-sampling"`
 3. **probabilistic-sampling**: Samples 50% of traces with `policy.group="probabilistic-sampling"`
+4. **ottl-condition-sampling**: Samples traces matching OTTL conditions AND `policy.group="ottl-condition-sampling"`
 
 The tail sampling processor waits for 5 seconds to collect all spans in a trace before making a sampling decision.
 
+### 2. `config-first-match.yaml` (Priority-Based Sampling)
+Demonstrates `sample_on_first_match: true` with priority-ordered policies (errors > latency > important endpoints > probabilistic baseline). This config short-circuits evaluation as soon as a policy samples a trace, improving performance for high-volume systems.
+
+### 3. `config-composite.yaml` (Rate Allocation)
+Demonstrates the **composite policy type** with rate allocation across sub-policies:
+- 50% (500 spans/s) for errors (`http.status_code >= 400`)
+- 25% (250 spans/s) for mutations (`http.method` in [POST, PUT, DELETE])
+- 25% (250 spans/s) for all other traces (remaining capacity)
+- Total throughput: 1000 spans/s
+
+**Note**: The composite policy cannot be wrapped in an `and` policy, so it evaluates ALL traces globally (not policy-group-based).
+
+### Configuration Options
+
+#### `sample_on_first_match`
+
+The `sample_on_first_match` configuration option controls when the tail sampling processor stops evaluating policies.
+
+**CRITICAL: This flag ONLY stops evaluation on "Sampled" decisions, NOT on "NotSampled" (drop) decisions.**
+
+**Default: `false` (Evaluate all policies)**
+- The processor evaluates ALL configured policies for each trace
+- Collects all decisions and uses the most permissive result
+- If ANY policy decides to sample the trace, it will be sampled
+- Dropping decisions don't prevent other policies from sampling
+- Best for scenarios where you want multiple independent sampling criteria
+- Example: A trace with both an error AND high latency will be sampled by either the error-sampling OR latency-sampling policy
+
+**When set to `true` (Stop on first "Sampled" decision)**
+- The processor stops evaluating as soon as a policy decides to SAMPLE
+- Policies that decide NOT to sample (drop) don't stop evaluation
+- Subsequent policies are skipped only after a positive sampling decision
+- Policies are evaluated in the order they appear in the configuration
+- More efficient when early policies sample high-priority traces
+- Best for priority-based sampling where you want to capture important traces quickly
+
+**Example Scenarios:**
+
+*Scenario 1: `sample_on_first_match: false` (default)*
+```yaml
+policies:
+  - name: error-policy
+    type: status_code
+    status_code: { status_codes: ["ERROR"] }
+
+  - name: latency-policy
+    type: latency
+    latency: { threshold_ms: 1000 }
+```
+**Trace with error:** Both policies are evaluated. Error-policy says "sample", latency-policy might say "sample" or "not sample". Final decision: **Sampled** (at least one policy matched).
+
+**Trace without error but slow:** Both policies are evaluated. Error-policy says "not sample", latency-policy says "sample". Final decision: **Sampled** (latency policy matched).
+
+**Trace without error and fast:** Both policies are evaluated. Both say "not sample". Final decision: **Not Sampled**.
+
+*Scenario 2: `sample_on_first_match: true`*
+```yaml
+policies:
+  - name: error-policy  # Evaluated first
+    type: status_code
+    status_code: { status_codes: ["ERROR"] }
+
+  - name: latency-policy  # Evaluated ONLY if error-policy returns "not sample"
+    type: latency
+    latency: { threshold_ms: 1000 }
+```
+**Trace with error:** Error-policy says "sample". Evaluation STOPS immediately. Latency-policy is never checked. Final decision: **Sampled**.
+
+**Trace without error but slow:** Error-policy says "not sample" (no error). Evaluation CONTINUES. Latency-policy is checked and says "sample". Final decision: **Sampled**.
+
+**Trace without error and fast:** Error-policy says "not sample". Evaluation continues. Latency-policy says "not sample". Final decision: **Not Sampled**.
+
+**Key Insight:** With `sample_on_first_match: true`, you can't prevent a trace from being sampled by a later policy if earlier policies drop it. The flag only short-circuits on positive sampling decisions.
+
+**When to use `sample_on_first_match: true`:**
+- **Performance optimization ONLY**: Reduce CPU usage by skipping remaining policy evaluations once a trace is already going to be sampled
+- You expect many traces to match early policies (errors, critical endpoints) and want to avoid wasting CPU checking remaining policies
+- You don't need observability into ALL policies that matched (only the first one that sampled)
+
+**Important Note**: Since the final decision is always "sample if ANY policy says sample" (most permissive wins), this flag ONLY affects:
+1. **Performance**: Skip unnecessary policy evaluations to save CPU
+2. **Observability**: With `false`, you can see ALL policies that matched; with `true`, you only see the first match
+
+The sampling decision outcome is the SAME either way. This is purely a performance vs observability trade-off.
+
+**Real-world use case for `true`:**
+High-volume system where 30% of traces have errors. With `sample_on_first_match: true` and error-policy first, you skip evaluating latency/probabilistic policies for those 30% of traces, saving significant CPU cycles. The traces would be sampled anyway, so you're just avoiding wasted work.
+
+**When to keep `sample_on_first_match: false` (default):**
+- **Observability priority**: You want to know ALL policies that matched a trace, not just the first one
+- You want metrics/logs showing how many traces matched multiple policies
+- CPU cost of evaluating all policies is acceptable
+- You're debugging or understanding sampling behavior
+
+**Real-world use case for `false`:**
+You want dashboards showing: "30% of sampled traces had errors, 15% were slow, 5% were both errors AND slow." This helps you understand your system's behavior patterns. With `sample_on_first_match: true`, you'd only know "30% matched error policy" but lose visibility into the overlap.
+
+**Important Notes:**
+- Our current configuration (`config.yaml`) uses `sample_on_first_match: false` (default) because we use policy groups with resource attributes, which already provide isolation between different sampling strategies
+- The policy grouping approach (using `policy.group` attributes) works well with the default behavior, as it ensures traces are only evaluated by their designated policy group
+- An alternative configuration file (`config-first-match.yaml`) demonstrates `sample_on_first_match: true` with priority-based policies (errors > latency > important endpoints > probabilistic baseline)
+
 ### How Policy Grouping Works
 
-Policy groups are implemented using composite `and` policies that combine:
+Policy groups are implemented using `and` policies that combine:
 - The actual sampling logic (error status, latency threshold, etc.)
 - A resource attribute check for `policy.group`
 
 This ensures that each trace is only evaluated by its designated policy group, preventing cross-policy interference even though all traces flow through the same collector.
+
+**Note**: Don't confuse `and` policies (used for policy grouping) with the `composite` policy type (used for rate allocation). They are different policy types with different purposes.
 
 ## Testing Tail Sampling
 
@@ -128,3 +235,116 @@ Sends three spans with the same trace ID and `policy.group="probabilistic-sampli
 2. Match the probabilistic-sampling policy group due to policy.group attribute
 3. Sample 50% of traces based on probabilistic sampling
 4. **Note**: Run this script multiple times to observe the sampling behavior - approximately half of the traces will be sampled
+
+### 6. Send spans with OTTL condition sampling (ottl-condition-sampling group)
+
+```bash
+./06_send-spans-ottl-condition-sampled.sh
+```
+
+Sends two separate traces with `policy.group="ottl-condition-sampling"`, demonstrating OpenTelemetry Transformation Language (OTTL) condition matching. The collector will:
+1. **Trace 1** (should NOT be sampled): Single span from `service.name="frontend"` but without the required span event
+   - Has policy group match ✅
+   - Has service.name="frontend" ✅
+   - Missing span event named "example.event" ❌
+   - Result: NOT sampled (all OTTL conditions must match)
+2. **Trace 2** (should be sampled): Single span from `service.name="frontend"` WITH the required span event
+   - Has policy group match ✅
+   - Has service.name="frontend" ✅
+   - Has span event named "example.event" ✅
+   - Result: SAMPLED (all OTTL conditions match)
+3. The OTTL condition policy requires BOTH conditions to be true:
+   - Span resource attribute: `service.name == "frontend"`
+   - Span event: name == "example.event"
+4. This demonstrates how OTTL conditions can filter based on complex criteria including span events
+
+### 7. Send spans demonstrating decision cache (requires config changes)
+
+```bash
+./07_send-spans-decision-cache-example.sh
+```
+
+**Important**: This test requires manual configuration changes to demonstrate decision cache behavior.
+
+**Setup steps:**
+1. Edit `config.yaml` and make these changes:
+   ```yaml
+   tail_sampling:
+     num_traces: 1  # Change from 1000 to 1
+     decision_cache:  # Uncomment these lines
+       sampled_cache_size: 10000
+       non_sampled_cache_size: 10000
+   ```
+2. Restart the collector with `./00_run.sh`
+3. Run the test script
+
+This script demonstrates how the decision cache handles late-arriving spans. It sends spans in a specific sequence to show cache behavior:
+
+1. **Span 1** (TRACE_ID_1, with ERROR): Sent immediately
+   - Matches error-sampling policy group ✅
+   - Has ERROR status ✅
+   - Result: SAMPLED
+   - Decision cached for TRACE_ID_1
+
+2. **Wait 6 seconds** (longer than decision_wait of 5s): Decision is made and cached
+
+3. **Span 2** (TRACE_ID_2, no error): Sent to evict TRACE_ID_1 from num_traces cache
+   - With `num_traces: 1`, the collector can only hold 1 trace in memory
+   - TRACE_ID_1 is evicted from the num_traces cache
+   - But the sampling decision for TRACE_ID_1 remains in decision_cache
+
+4. **Wait another 6 seconds**: Ensures TRACE_ID_2's decision is also made
+
+5. **Span 3** (TRACE_ID_1 again, no error): Late-arriving span for TRACE_ID_1
+   - TRACE_ID_1 is no longer in num_traces cache (evicted by TRACE_ID_2)
+   - But TRACE_ID_1's "sampled" decision IS in decision_cache
+   - Result: SAMPLED (using cached decision, even though it arrived late)
+
+**Key Learning**: The decision cache allows the collector to handle late-arriving spans efficiently. Without the cache, late-arriving spans would require re-evaluating policies or might be dropped. With the cache, the collector remembers past sampling decisions and applies them to late-arriving spans.
+
+### 8. Send spans with composite policy sampling (requires `config-composite.yaml`)
+
+**Important**: This test requires using the `config-composite.yaml` configuration file instead of the default `config.yaml`.
+
+```bash
+# Run the collector with the composite config
+./08_run_composite.sh
+
+# In another terminal, run the test script
+./08_send-spans-composite-sampled.sh
+```
+
+Sends three spans with the same trace ID, demonstrating rate allocation across multiple sub-policies.
+
+**How Composite Policy Evaluation Works:**
+
+The composite policy evaluates sub-policies **in order** specified by `policy_order` and uses **"first match wins"** logic:
+
+1. **For each trace**, sub-policies are evaluated in order: policy-1, then policy-2, then policy-3
+2. **First sub-policy that matches**:
+   - If under its rate limit → **Sample and STOP** (trace is sampled)
+   - If over its rate limit → **Drop and STOP** (trace is dropped, remaining policies are NOT checked)
+3. **If no sub-policy matches** → Trace is NOT sampled
+
+**Example: Trace with `http.status_code=500` AND `http.method=POST`**
+- Matches BOTH policy-1 (errors) and policy-2 (mutations)
+- Policy-1 is checked first (it's first in `policy_order`)
+- Policy-1 matches → trace is allocated to policy-1's rate limit (500 spans/s)
+- Policy-2 is never evaluated (first match wins)
+
+**Rate Allocation Guarantees:**
+- **test-composite-policy-1** (errors, 50% = 500 spans/s): Highest priority
+- **test-composite-policy-2** (mutations, 25% = 250 spans/s): Second priority
+- **test-composite-policy-3** (always_sample, 25% = 250 spans/s): Catches everything else
+
+The collector will:
+1. Collect all spans for the trace (waits up to 5s)
+2. Evaluate trace globally (composite policy is not restricted to a policy group)
+3. Check sub-policies in priority order until one matches and makes a decision
+4. Apply the matched policy's rate limit
+
+**Key Points:**
+- Unlike other policies, composite cannot be wrapped with an `and` policy to check for `policy.group` attributes
+- Sub-policy evaluation stops at the first match (built-in short-circuit behavior)
+- `policy_order` determines priority - earlier policies "steal" traces from later ones if they match
+- Run this script multiple times under load to observe rate limiting behavior

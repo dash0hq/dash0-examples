@@ -1,0 +1,99 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  tail_sampling:
+    # How long to wait for all spans of a trace before making a decision
+    decision_wait: 5s
+    # Max number of traces to keep in memory while waiting
+    num_traces: 1000
+
+    # This config demonstrates the COMPOSITE policy type with rate allocation
+    sample_on_first_match: false
+
+    policies:
+      # ========================================
+      # COMPOSITE POLICY
+      # ========================================
+      # The composite policy allocates sampling rate across multiple sub-policies.
+      # It cannot be wrapped in an AND policy, so it evaluates ALL traces globally.
+      #
+      # Configuration:
+      # - max_total_spans_per_second: 1000 (total throughput limit)
+      # - Rate allocation per sub-policy:
+      #   * 50% (500 spans/s) → errors (http.status_code >= 400)
+      #   * 25% (250 spans/s) → mutations (http.method in [POST, PUT, DELETE])
+      #   * 25% (250 spans/s) → remaining capacity (always_sample)
+      #
+      # How composite policy evaluation works ("first match wins"):
+      # 1. Sub-policies are evaluated in order specified by policy_order
+      # 2. First sub-policy that matches the trace:
+      #    - If under its rate limit → SAMPLE the trace and STOP evaluation
+      #    - If over its rate limit → DROP the trace and STOP evaluation
+      # 3. Remaining sub-policies are NOT evaluated after first match
+      # 4. If no sub-policy matches → trace is NOT sampled
+      #
+      # Example: Trace with http.status_code=500 AND http.method=POST
+      # - Matches BOTH policy-1 (errors) and policy-2 (mutations)
+      # - Policy-1 is evaluated first (appears first in policy_order)
+      # - Policy-1 matches → trace allocated to policy-1's rate limit (500 spans/s)
+      # - Policy-2 is NEVER checked (first match wins)
+      #
+      # Use case:
+      # Ensure high-priority traces (errors, mutations) get guaranteed sampling rates
+      # while still sampling a baseline of other traffic up to the total limit.
+      # Policy order determines priority - place critical policies first.
+      - name: composite-policy-1
+        type: composite
+        composite:
+          max_total_spans_per_second: 1000
+          policy_order: [test-composite-policy-1, test-composite-policy-2, test-composite-policy-3]
+          composite_sub_policy:
+            - name: test-composite-policy-1
+              type: numeric_attribute
+              numeric_attribute:
+                key: http.status_code
+                min_value: 400
+            - name: test-composite-policy-2
+              type: string_attribute
+              string_attribute:
+                key: http.method
+                values: [POST, PUT, DELETE]
+            - name: test-composite-policy-3
+              type: always_sample
+          rate_allocation:
+            - policy: test-composite-policy-1
+              percent: 50
+            - policy: test-composite-policy-2
+              percent: 25
+
+  batch: {}
+
+exporters:
+  otlp/dash0:
+    endpoint: ${env:DASH0_ENDPOINT_OTLP_GRPC_HOSTNAME}:${env:DASH0_ENDPOINT_OTLP_GRPC_PORT}
+    headers:
+      Authorization: Bearer ${env:DASH0_AUTH_TOKEN}
+      Dash0-Dataset: ${env:DASH0_DATASET}
+  debug:
+    verbosity: detailed
+
+service:
+  telemetry:
+    logs:
+      level: ${env:OPENTELEMETRY_COLLECTOR_LOG_LEVEL}
+  pipelines:
+    traces:
+      receivers:
+        - otlp
+      processors:
+        - tail_sampling
+        - batch
+      exporters:
+        - debug
+        - otlp/dash0

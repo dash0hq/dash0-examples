@@ -4,6 +4,19 @@ set -eo pipefail
 
 source ../../.env
 
+# Generate unique trace IDs
+TRACE_ID_1="$(date +%s)805a7c87bc2f6dab94a7f1"
+TRACE_ID_2="$(date +%s)805a7c87bc2f6dab94a7f2"
+
+echo "Sending OTTL condition sampling test spans..."
+echo ""
+echo "Trace 1 (traceId: ${TRACE_ID_1}):"
+echo "  - service.name='frontend' ✅"
+echo "  - policy.group='ottl-condition-sampling' ✅"
+echo "  - Span event 'example.event' ❌ (MISSING)"
+echo "  Expected: NOT SAMPLED (OTTL conditions require BOTH service.name AND span event)"
+echo ""
+
 curl http://localhost:4318/v1/traces \
   -X POST \
   -H "Content-Type: application/json" \
@@ -44,7 +57,7 @@ curl http://localhost:4318/v1/traces \
               "kind": 1,
               "links": [],
               "name": "Manually Ingested Span",
-              "traceId": "'$(date +%s)805a7c87bc2f6dab94a7f1'",
+              "traceId": "'$TRACE_ID_1'",
               "parentSpanId": "",
               "spanId": "e12ea8f8e32c0e61",
               "traceState": "",
@@ -62,6 +75,13 @@ curl http://localhost:4318/v1/traces \
 
 # Simulate minimal latency
 sleep .1
+
+echo "Trace 2 (traceId: ${TRACE_ID_2}):"
+echo "  - service.name='frontend' ✅"
+echo "  - policy.group='ottl-condition-sampling' ✅"
+echo "  - Span event 'example.event' ✅ (PRESENT)"
+echo "  Expected: SAMPLED (all OTTL conditions match)"
+echo ""
 
 curl http://localhost:4318/v1/traces \
   -X POST \
@@ -114,7 +134,7 @@ curl http://localhost:4318/v1/traces \
               "kind": 1,
               "links": [],
               "name": "Manually Ingested Span",
-              "traceId": "'$(date +%s)805a7c87bc2f6dab94a7f2'",
+              "traceId": "'$TRACE_ID_2'",
               "parentSpanId": "",
               "spanId": "e12ea8f8e32c0e62",
               "traceState": "",
@@ -129,3 +149,13 @@ curl http://localhost:4318/v1/traces \
     }
   ]
 }'
+
+echo ""
+echo "Summary:"
+echo "  - Trace 1 (${TRACE_ID_1}): Should NOT be sampled (missing span event)"
+echo "  - Trace 2 (${TRACE_ID_2}): Should be sampled (has all required conditions)"
+echo ""
+echo "The OTTL condition policy demonstrates advanced filtering using:"
+echo "  1. Resource attributes (service.name)"
+echo "  2. Span events (event with name 'example.event')"
+echo "  Both conditions must match for the trace to be sampled."

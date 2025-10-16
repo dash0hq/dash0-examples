@@ -1,0 +1,102 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  tail_sampling:
+    # How long to wait for all spans of a trace before making a decision
+    decision_wait: 5s
+    # Max number of traces to keep in memory while waiting
+    num_traces: 1000
+
+    # EXAMPLE: sample_on_first_match enabled
+    # This config demonstrates priority-based sampling with short-circuit evaluation.
+    #
+    # CRITICAL: This flag ONLY stops evaluation when a policy decides to SAMPLE.
+    # If a policy decides NOT to sample (drop), evaluation continues to the next policy.
+    #
+    # How this config works:
+    # 1. Trace with error -> priority-1 samples it, STOP (skip remaining policies)
+    # 2. Trace without error but slow -> priority-1 drops, CONTINUE to priority-2
+    #    -> priority-2 samples it, STOP (skip remaining policies)
+    # 3. Trace without error, not slow, but important endpoint -> priorities 1&2 drop,
+    #    CONTINUE to priority-3 -> priority-3 samples it, STOP (skip priority-4)
+    # 4. Trace without error, not slow, not important -> priorities 1,2,3 drop,
+    #    CONTINUE to priority-4 -> probabilistic check (10% chance to sample)
+    #
+    # Performance benefit: If many traces have errors, the collector skips evaluating
+    # latency, endpoint, and probabilistic policies for those traces, saving CPU.
+    sample_on_first_match: true
+
+    policies:
+      # ========================================
+      # PRIORITY 1: Always sample errors (highest priority)
+      # ========================================
+      # This policy is evaluated FIRST. If a trace has an error,
+      # it will be sampled immediately without checking other policies.
+      - name: priority-1-errors
+        type: status_code
+        status_code:
+          status_codes: [ "ERROR" ]
+
+      # ========================================
+      # PRIORITY 2: Sample high-latency traces
+      # ========================================
+      # Only evaluated if priority-1 doesn't match (no errors).
+      # If a trace is slow but has no errors, it will be sampled here.
+      - name: priority-2-latency
+        type: latency
+        latency:
+          threshold_ms: 1000
+
+      # ========================================
+      # PRIORITY 3: Sample specific endpoints
+      # ========================================
+      # Only evaluated if priority-1 and priority-2 don't match.
+      # Samples traces for important endpoints like /checkout or /payment
+      - name: priority-3-important-endpoints
+        type: string_attribute
+        string_attribute:
+          key: http.target
+          values: ["/checkout", "/payment", "/api/charge"]
+          enabled_regex_matching: false
+
+      # ========================================
+      # PRIORITY 4: Sample rate-limited traces
+      # ========================================
+      # Only evaluated if none of the above priorities match.
+      # Samples 10% of remaining traces to get a baseline
+      - name: priority-4-probabilistic-baseline
+        type: probabilistic
+        probabilistic:
+          sampling_percentage: 10
+
+  batch: {}
+
+exporters:
+  otlp/dash0:
+    endpoint: ${env:DASH0_ENDPOINT_OTLP_GRPC_HOSTNAME}:${env:DASH0_ENDPOINT_OTLP_GRPC_PORT}
+    headers:
+      Authorization: Bearer ${env:DASH0_AUTH_TOKEN}
+      Dash0-Dataset: ${env:DASH0_DATASET}
+  debug:
+    verbosity: detailed
+
+service:
+  telemetry:
+    logs:
+      level: ${env:OPENTELEMETRY_COLLECTOR_LOG_LEVEL}
+  pipelines:
+    traces:
+      receivers:
+        - otlp
+      processors:
+        - tail_sampling
+        - batch
+      exporters:
+        - debug
+        - otlp/dash0
