@@ -25,13 +25,18 @@ Tail sampling makes sampling decisions after all spans in a trace have been rece
 Run the OpenTelemetry Collector in a Docker container:
 
 ```bash
+# Run with default config.yaml
 ./00_run.sh
+
+# Or specify a different config file
+./00_run.sh config-composite.yaml
+./00_run.sh config-first-match.yaml
 ```
 
 This will:
 - Start the OpenTelemetry Collector in Docker
 - Expose ports 4317 (gRPC) and 4318 (HTTP) for receiving telemetry
-- Mount the local `config.yaml` into the container
+- Mount the specified config file (or `config.yaml` by default) into the container
 - Pass environment variables from your `.env` file to the container
 
 ## Tail Sampling Configuration
@@ -308,7 +313,7 @@ This script demonstrates how the decision cache handles late-arriving spans. It 
 
 ```bash
 # Run the collector with the composite config
-./08_run_composite.sh
+./00_run.sh config-composite.yaml
 
 # In another terminal, run the test script
 ./08_send-spans-composite-sampled.sh
@@ -318,9 +323,9 @@ Sends three spans with the same trace ID, demonstrating rate allocation across m
 
 **How Composite Policy Evaluation Works:**
 
-The composite policy evaluates sub-policies **in order** specified by `policy_order` and uses **"first match wins"** logic:
+The composite policy evaluates sub-policies using **"first match wins"** logic. Sub-policies are evaluated **in the order they appear in the `composite_sub_policy` array**:
 
-1. **For each trace**, sub-policies are evaluated in order: policy-1, then policy-2, then policy-3
+1. **For each trace**, sub-policies are evaluated in array order: policy-1, then policy-2, then policy-3
 2. **First sub-policy that matches**:
    - If under its rate limit → **Sample and STOP** (trace is sampled)
    - If over its rate limit → **Drop and STOP** (trace is dropped, remaining policies are NOT checked)
@@ -328,23 +333,24 @@ The composite policy evaluates sub-policies **in order** specified by `policy_or
 
 **Example: Trace with `http.status_code=500` AND `http.method=POST`**
 - Matches BOTH policy-1 (errors) and policy-2 (mutations)
-- Policy-1 is checked first (it's first in `policy_order`)
+- Policy-1 is checked first (it's first in the `composite_sub_policy` array)
 - Policy-1 matches → trace is allocated to policy-1's rate limit (500 spans/s)
 - Policy-2 is never evaluated (first match wins)
 
 **Rate Allocation Guarantees:**
-- **test-composite-policy-1** (errors, 50% = 500 spans/s): Highest priority
-- **test-composite-policy-2** (mutations, 25% = 250 spans/s): Second priority
-- **test-composite-policy-3** (always_sample, 25% = 250 spans/s): Catches everything else
+- **test-composite-policy-1** (errors, 50% = 500 spans/s): Highest priority (first in array)
+- **test-composite-policy-2** (mutations, 25% = 250 spans/s): Second priority (second in array)
+- **test-composite-policy-3** (always_sample, 25% = 250 spans/s): Catches everything else (last in array)
 
 The collector will:
 1. Collect all spans for the trace (waits up to 5s)
 2. Evaluate trace globally (composite policy is not restricted to a policy group)
-3. Check sub-policies in priority order until one matches and makes a decision
+3. Check sub-policies in array order until one matches and makes a decision
 4. Apply the matched policy's rate limit
 
 **Key Points:**
 - Unlike other policies, composite cannot be wrapped with an `and` policy to check for `policy.group` attributes
 - Sub-policy evaluation stops at the first match (built-in short-circuit behavior)
-- `policy_order` determines priority - earlier policies "steal" traces from later ones if they match
+- **Order matters**: Place higher-priority policies first in the `composite_sub_policy` array - earlier policies "steal" traces from later ones if they match
+- The `policy_order` field exists in the config but is not currently used by the implementation - evaluation order is determined by array position
 - Run this script multiple times under load to observe rate limiting behavior

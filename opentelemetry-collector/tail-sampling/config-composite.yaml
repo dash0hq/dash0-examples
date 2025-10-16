@@ -31,7 +31,7 @@ processors:
       #   * 25% (250 spans/s) → remaining capacity (always_sample)
       #
       # How composite policy evaluation works ("first match wins"):
-      # 1. Sub-policies are evaluated in order specified by policy_order
+      # 1. Sub-policies are evaluated in the order they appear in composite_sub_policy array
       # 2. First sub-policy that matches the trace:
       #    - If under its rate limit → SAMPLE the trace and STOP evaluation
       #    - If over its rate limit → DROP the trace and STOP evaluation
@@ -40,14 +40,17 @@ processors:
       #
       # Example: Trace with http.status_code=500 AND http.method=POST
       # - Matches BOTH policy-1 (errors) and policy-2 (mutations)
-      # - Policy-1 is evaluated first (appears first in policy_order)
+      # - Policy-1 is evaluated first (appears first in composite_sub_policy array)
       # - Policy-1 matches → trace allocated to policy-1's rate limit (500 spans/s)
       # - Policy-2 is NEVER checked (first match wins)
       #
       # Use case:
       # Ensure high-priority traces (errors, mutations) get guaranteed sampling rates
       # while still sampling a baseline of other traffic up to the total limit.
-      # Policy order determines priority - place critical policies first.
+      # Array order determines priority - place critical policies first in composite_sub_policy.
+      #
+      # Note: The policy_order field exists but is not currently used by the implementation.
+      # Evaluation order is determined by the position in the composite_sub_policy array.
       - name: composite-policy-1
         type: composite
         composite:
