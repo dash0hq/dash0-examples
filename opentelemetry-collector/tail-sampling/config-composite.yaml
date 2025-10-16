@@ -13,7 +13,9 @@ processors:
     # Max number of traces to keep in memory while waiting
     num_traces: 1000
 
-    # This config demonstrates the COMPOSITE policy type with rate allocation
+    # This config demonstrates the COMPOSITE policy type with rate allocation.
+    # The rate limits are intentionally set very low (4 spans/s total) to make
+    # it easy to demonstrate rate limiting behavior in the test script.
     sample_on_first_match: false
 
     policies:
@@ -24,11 +26,10 @@ processors:
       # It cannot be wrapped in an AND policy, so it evaluates ALL traces globally.
       #
       # Configuration:
-      # - max_total_spans_per_second: 1000 (total throughput limit)
+      # - max_total_spans_per_second: 4 (intentionally low for testing)
       # - Rate allocation per sub-policy:
-      #   * 50% (500 spans/s) → errors (http.status_code >= 400)
-      #   * 25% (250 spans/s) → mutations (http.method in [POST, PUT, DELETE])
-      #   * 25% (250 spans/s) → remaining capacity (always_sample)
+      #   * 50% (2 spans/s) → errors (http.status_code >= 400)
+      #   * 50% (2 spans/s) → mutations (http.method in [POST, PUT, DELETE])
       #
       # How composite policy evaluation works ("first match wins"):
       # 1. Sub-policies are evaluated in the order they appear in composite_sub_policy array
@@ -41,12 +42,18 @@ processors:
       # Example: Trace with http.status_code=500 AND http.method=POST
       # - Matches BOTH policy-1 (errors) and policy-2 (mutations)
       # - Policy-1 is evaluated first (appears first in composite_sub_policy array)
-      # - Policy-1 matches → trace allocated to policy-1's rate limit (500 spans/s)
+      # - Policy-1 matches → trace allocated to policy-1's rate limit (2 spans/s)
       # - Policy-2 is NEVER checked (first match wins)
+      #
+      # Rate limiting example (from test script 08):
+      # - Trace 1: Error (500) → sampled by policy-1 (first error, within limit)
+      # - Trace 2: Error (500) + POST → sampled by policy-1 (second error, still within limit)
+      # - Trace 3: Error (503) → DROPPED by policy-1 (third error, exceeds 2 spans/s limit)
+      # - Trace 4: POST only → sampled by policy-2 (no error, so policy-1 doesn't match)
       #
       # Use case:
       # Ensure high-priority traces (errors, mutations) get guaranteed sampling rates
-      # while still sampling a baseline of other traffic up to the total limit.
+      # while preventing any single trace type from consuming all capacity.
       # Array order determines priority - place critical policies first in composite_sub_policy.
       #
       # Note: The policy_order field exists but is not currently used by the implementation.
@@ -54,8 +61,8 @@ processors:
       - name: composite-policy-1
         type: composite
         composite:
-          max_total_spans_per_second: 1000
-          policy_order: [test-composite-policy-1, test-composite-policy-2, test-composite-policy-3]
+          max_total_spans_per_second: 4
+          policy_order: [test-composite-policy-1, test-composite-policy-2]
           composite_sub_policy:
             - name: test-composite-policy-1
               type: numeric_attribute
@@ -67,15 +74,11 @@ processors:
               string_attribute:
                 key: http.method
                 values: [POST, PUT, DELETE]
-            - name: test-composite-policy-3
-              type: always_sample
           rate_allocation:
             - policy: test-composite-policy-1
               percent: 50
             - policy: test-composite-policy-2
-              percent: 25
-            - policy: test-composite-policy-3
-              percent: 25
+              percent: 50
 
   batch: {}
 

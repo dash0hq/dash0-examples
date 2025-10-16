@@ -60,10 +60,9 @@ Demonstrates `sample_on_first_match: true` with priority-ordered policies (error
 
 ### 3. `config-composite.yaml` (Rate Allocation)
 Demonstrates the **composite policy type** with rate allocation across sub-policies:
-- 50% (500 spans/s) for errors (`http.status_code >= 400`)
-- 25% (250 spans/s) for mutations (`http.method` in [POST, PUT, DELETE])
-- 25% (250 spans/s) for all other traces (remaining capacity)
-- Total throughput: 1000 spans/s
+- 50% (2 spans/s) for errors (`http.status_code >= 400`)
+- 50% (2 spans/s) for mutations (`http.method` in [POST, PUT, DELETE])
+- Total throughput: 4 spans/s (intentionally low for testing)
 
 **Note**: The composite policy cannot be wrapped in an `and` policy, so it evaluates ALL traces globally (not policy-group-based).
 
@@ -322,20 +321,19 @@ This script demonstrates how the decision cache handles late-arriving spans. It 
 ./08_send-spans-composite-sampled.sh
 ```
 
-Sends three spans with the same trace ID, demonstrating rate allocation across multiple sub-policies.
+Sends four separate traces to demonstrate rate allocation and rate limiting behavior. The test is designed to show what happens when a sub-policy exceeds its allocated rate limit.
 
-**Metrics**: This test automatically fetches and displays tail sampling metrics from the collector's Prometheus endpoint (port 8888), including:
-- `processor_tail_sampling_count_traces_sampled` - Number of traces sampled by each policy
-- `processor_tail_sampling_count_spans_sampled` - Number of spans sampled by each policy (demonstrates rate allocation)
-- `processor_tail_sampling_global_count_traces_sampled` - Overall sampling decisions
-
-These metrics help visualize which sub-policy handled the trace and how rate allocation works.
+**Test Scenario:**
+- **Trace 1**: Error (status 500) → Sampled by policy-1 (within rate limit)
+- **Trace 2**: Error (status 500) + POST → Sampled by policy-1 (matches both policies, but policy-1 is first in array)
+- **Trace 3**: Error (status 503) → **Dropped** by policy-1 (exceeds 2 spans/s rate limit)
+- **Trace 4**: POST only → Sampled by policy-2 (doesn't match policy-1, within policy-2's limit)
 
 **How Composite Policy Evaluation Works:**
 
 The composite policy evaluates sub-policies using **"first match wins"** logic. Sub-policies are evaluated **in the order they appear in the `composite_sub_policy` array**:
 
-1. **For each trace**, sub-policies are evaluated in array order: policy-1, then policy-2, then policy-3
+1. **For each trace**, sub-policies are evaluated in array order: policy-1, then policy-2
 2. **First sub-policy that matches**:
    - If under its rate limit → **Sample and STOP** (trace is sampled)
    - If over its rate limit → **Drop and STOP** (trace is dropped, remaining policies are NOT checked)
@@ -344,13 +342,13 @@ The composite policy evaluates sub-policies using **"first match wins"** logic. 
 **Example: Trace with `http.status_code=500` AND `http.method=POST`**
 - Matches BOTH policy-1 (errors) and policy-2 (mutations)
 - Policy-1 is checked first (it's first in the `composite_sub_policy` array)
-- Policy-1 matches → trace is allocated to policy-1's rate limit (500 spans/s)
+- Policy-1 matches → trace is allocated to policy-1's rate limit (2 spans/s)
 - Policy-2 is never evaluated (first match wins)
 
-**Rate Allocation Guarantees:**
-- **test-composite-policy-1** (errors, 50% = 500 spans/s): Highest priority (first in array)
-- **test-composite-policy-2** (mutations, 25% = 250 spans/s): Second priority (second in array)
-- **test-composite-policy-3** (always_sample, 25% = 250 spans/s): Catches everything else (last in array)
+**Rate Allocation Configuration:**
+- **test-composite-policy-1** (errors, 50% = 2 spans/s): Highest priority (first in array)
+- **test-composite-policy-2** (mutations, 50% = 2 spans/s): Second priority (second in array)
+- **Total**: 4 spans/s (intentionally low for testing)
 
 The collector will:
 1. Collect all spans for the trace (waits up to 5s)
@@ -362,5 +360,6 @@ The collector will:
 - Unlike other policies, composite cannot be wrapped with an `and` policy to check for `policy.group` attributes
 - Sub-policy evaluation stops at the first match (built-in short-circuit behavior)
 - **Order matters**: Place higher-priority policies first in the `composite_sub_policy` array - earlier policies "steal" traces from later ones if they match
+- **Rate limiting is strict**: Once a sub-policy exceeds its rate limit, matching traces are dropped (not passed to other policies)
 - The `policy_order` field exists in the config but is not currently used by the implementation - evaluation order is determined by array position
-- Run this script multiple times under load to observe rate limiting behavior
+- Rate limits are enforced per-second, so timing matters when running tests
