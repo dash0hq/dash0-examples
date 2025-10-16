@@ -59,12 +59,17 @@ The tail sampling processor waits for 5 seconds to collect all spans in a trace 
 Demonstrates `sample_on_first_match: true` with priority-ordered policies (errors > latency > important endpoints > probabilistic baseline). This config short-circuits evaluation as soon as a policy samples a trace, improving performance for high-volume systems.
 
 ### 3. `config-composite.yaml` (Rate Allocation)
-Demonstrates the **composite policy type** with rate allocation across sub-policies:
+Demonstrates the **composite policy type** with rate allocation across sub-policies. Use this when you need to guarantee sampling rates for different trace categories while enforcing a total throughput limit.
+
+**Configuration:**
 - 50% (2 spans/s) for errors (`http.status_code >= 400`)
 - 50% (2 spans/s) for mutations (`http.method` in [POST, PUT, DELETE])
-- Total throughput: 4 spans/s (intentionally low for testing)
+- Total: 4 spans/s (intentionally low for testing)
 
-**Note**: The composite policy cannot be wrapped in an `and` policy, so it evaluates ALL traces globally (not policy-group-based).
+**Key differences from other policies:**
+- Cannot be wrapped in an `and` policy (evaluates ALL traces globally, not policy-group-based)
+- "First match wins" - array order determines priority
+- Rate limits prevent any category from consuming all capacity
 
 ### 4. `config-decision-cache.yaml` (Decision Cache Testing)
 Demonstrates the **decision cache** feature with:
@@ -75,11 +80,35 @@ This configuration is specifically designed for testing how the collector handle
 
 ### Configuration Options
 
+#### `decision_cache`
+
+The `decision_cache` configuration option enables caching of sampling decisions after traces have been evaluated. This is crucial for handling **late-arriving spans** - spans that arrive after the trace has already been evaluated and potentially evicted from memory.
+
+**Problem without decision cache:**
+- Tail sampling processor holds traces in memory (`num_traces` limit) while waiting for all spans
+- After `decision_wait` expires, a sampling decision is made and the trace is processed
+- If a late span arrives after the trace is evicted from memory, the collector doesn't know what to do with it
+- Without cache: late span is treated as a new trace and may be dropped or re-evaluated incorrectly
+
+**Solution with decision cache:**
+- After making a sampling decision, the decision is cached with the trace ID as the key
+- Cache keeps both "sampled" and "not sampled" decisions separately
+- When a late-arriving span comes in, the collector looks up the trace ID in the cache
+- If found, the cached decision is applied (sample or drop) without re-evaluating policies
+- This ensures consistent handling of all spans in a trace, regardless of arrival order
+
+**Configuration:**
+```yaml
+decision_cache:
+  sampled_cache_size: 10000      # Number of "sampled" decisions to cache
+  non_sampled_cache_size: 10000  # Number of "not sampled" decisions to cache
+```
+
 #### `sample_on_first_match`
 
 The `sample_on_first_match` configuration option controls when the tail sampling processor stops evaluating policies.
 
-**CRITICAL: This flag ONLY stops evaluation on "Sampled" decisions, NOT on "NotSampled" (drop) decisions.**
+**IMPORTANT: This flag ONLY stops evaluation on "Sampled" decisions, NOT on "NotSampled" (drop) decisions.**
 
 **Default: `false` (Evaluate all policies)**
 - The processor evaluates ALL configured policies for each trace
@@ -146,23 +175,6 @@ policies:
 
 The sampling decision outcome is the SAME either way. This is purely a performance vs observability trade-off.
 
-**Real-world use case for `true`:**
-High-volume system where 30% of traces have errors. With `sample_on_first_match: true` and error-policy first, you skip evaluating latency/probabilistic policies for those 30% of traces, saving significant CPU cycles. The traces would be sampled anyway, so you're just avoiding wasted work.
-
-**When to keep `sample_on_first_match: false` (default):**
-- **Observability priority**: You want to know ALL policies that matched a trace, not just the first one
-- You want metrics/logs showing how many traces matched multiple policies
-- CPU cost of evaluating all policies is acceptable
-- You're debugging or understanding sampling behavior
-
-**Real-world use case for `false`:**
-You want dashboards showing: "30% of sampled traces had errors, 15% were slow, 5% were both errors AND slow." This helps you understand your system's behavior patterns. With `sample_on_first_match: true`, you'd only know "30% matched error policy" but lose visibility into the overlap.
-
-**Important Notes:**
-- Our current configuration (`config.yaml`) uses `sample_on_first_match: false` (default) because we use policy groups with resource attributes, which already provide isolation between different sampling strategies
-- The policy grouping approach (using `policy.group` attributes) works well with the default behavior, as it ensures traces are only evaluated by their designated policy group
-- An alternative configuration file (`config-first-match.yaml`) demonstrates `sample_on_first_match: true` with priority-based policies (errors > latency > important endpoints > probabilistic baseline)
-
 ### How Policy Grouping Works
 
 Policy groups are implemented using `and` policies that combine:
@@ -170,8 +182,6 @@ Policy groups are implemented using `and` policies that combine:
 - A resource attribute check for `policy.group`
 
 This ensures that each trace is only evaluated by its designated policy group, preventing cross-policy interference even though all traces flow through the same collector.
-
-**Note**: Don't confuse `and` policies (used for policy grouping) with the `composite` policy type (used for rate allocation). They are different policy types with different purposes.
 
 ## Testing Tail Sampling
 
