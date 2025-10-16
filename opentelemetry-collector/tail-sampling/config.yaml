@@ -1,0 +1,213 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  tail_sampling:
+    # How long to wait for all spans of a trace before making a decision
+    decision_wait: 5s
+    # Max number of traces to keep in memory while waiting
+    num_traces: 1000
+    # Configures caches for sampling decisions
+#    decision_cache:
+#      sampled_cache_size: 10000
+#      non_sampled_cache_size: 10000
+
+    # Sample on first match: when enabled, stops evaluating policies as soon as
+    # the first policy decides to SAMPLE (not drop) the trace
+    # Default: false (evaluates all policies before deciding)
+    #
+    # IMPORTANT: This flag ONLY stops on "Sampled" decisions, NOT on "NotSampled"
+    # (drop) decisions. If a policy decides NOT to sample, evaluation continues.
+    #
+    # How it works:
+    # - false (default): Evaluates ALL policies and aggregates their decisions.
+    #   If ANY policy says "sample", the trace is sampled (most permissive).
+    # - true: Stops immediately when a policy says "sample" (short-circuits).
+    #   Policies that would drop (NotSampled) don't stop evaluation.
+    #
+    # Use case for true:
+    # You have policies ordered by priority, and want the first positive match
+    # to sample immediately without checking lower-priority policies. This is
+    # useful for ensuring high-priority traces (errors, critical endpoints) get
+    # sampled before lower-priority policies can influence the decision.
+    #
+    # Example: Error policy first, then latency policy, then probabilistic.
+    # If an error is found, sample immediately without checking if it's also slow
+    # or checking the probabilistic policy. But if there's no error, continue
+    # evaluating the latency and probabilistic policies.
+    sample_on_first_match: false
+
+    # Policy evaluation logic (when sample_on_first_match: false):
+    # When multiple policies are configured, the processor evaluates them and
+    # aggregates their decisions using "most permissive wins" logic:
+    #
+    # - If ANY policy returns "Sampled" -> Final decision: SAMPLE the trace
+    # - If ALL policies return "NotSampled" -> Final decision: DROP the trace
+    #
+    # This means it only takes ONE policy to say "sample" for the trace to be kept,
+    # even if other policies say "not sample". This is the opposite of what you
+    # might expect - it's not "any drop means drop", it's "any sample means sample".
+    #
+    # Example with 3 policies:
+    #   Policy 1 (error): NotSampled (no error found)
+    #   Policy 2 (latency): Sampled (slow trace detected)
+    #   Policy 3 (probabilistic): NotSampled (didn't win the lottery)
+    #   Final decision: SAMPLED (because policy 2 said sample)
+
+    policies:
+      # ========================================
+      # POLICY GROUP: error-sampling
+      # ========================================
+      # AND policy that samples traces with ERROR status
+      # AND have policy.group="error-sampling" resource attribute
+      - name: error-traces-policy
+        type: and
+        and:
+          and_sub_policy:
+            # Check for error status
+            - name: has-error-status
+              type: status_code
+              status_code:
+                status_codes: [ "ERROR" ]
+            # Check for policy group attribute
+            - name: error-sampling-group
+              type: string_attribute
+              string_attribute:
+                key: policy.group
+                values: ["error-sampling"]
+                enabled_regex_matching: false
+
+      # ========================================
+      # POLICY GROUP: latency-sampling
+      # ========================================
+      # AND policy that samples traces with high latency
+      # AND have policy.group="latency-sampling" resource attribute
+      - name: slow-traces-policy
+        type: and
+        and:
+          and_sub_policy:
+            # Check for high latency
+            - name: has-high-latency
+              type: latency
+              latency:
+                threshold_ms: 1000
+            # Check for policy group attribute
+            - name: latency-sampling-group
+              type: string_attribute
+              string_attribute:
+                key: policy.group
+                values: ["latency-sampling"]
+                enabled_regex_matching: false
+
+      # ========================================
+      # POLICY GROUP: probabilistic-sampling
+      # ========================================
+      # Samples 50% of traces with policy.group="probabilistic-sampling"
+      - name: probabilistic-policy
+        type: and
+        and:
+          and_sub_policy:
+            # Sample 50% of traces
+            - name: probabilistic-50-percent
+              type: probabilistic
+              probabilistic:
+                sampling_percentage: 50
+            # Check for policy group attribute
+            - name: probabilistic-sampling-group
+              type: string_attribute
+              string_attribute:
+                key: policy.group
+                values: ["probabilistic-sampling"]
+                enabled_regex_matching: false
+
+      # ========================================
+      # POLICY GROUP: ottl-condition-sampling
+      # ========================================
+      # Samples traces with policy.group="ottl-condition-sampling"
+      - name: ottl-condition-policy
+        type: and
+        and:
+          and_sub_policy:
+            # Sample by ottl condition
+            - name: ottl_condition-sub-policy
+              type: ottl_condition
+              ottl_condition: {
+                error_mode: ignore,
+                span: [
+                  "resource.attributes[\"service.name\"] == \"frontend\""
+                ],
+                spanevent: [
+                  "name == \"example.event\""
+                ]
+              }
+            # Check for policy group attribute
+            - name: ottl-condition-sampling-group
+              type: string_attribute
+              string_attribute:
+                key: policy.group
+                values: [ "ottl-condition-sampling" ]
+                enabled_regex_matching: false
+
+  batch: {}
+  filter:
+    error_mode: ignore
+    metrics:
+      datapoint:
+        - 'IsMatch(ConvertCase(String(metric.name), "lower"), "^k8s\\.replicaset\\.")'
+    traces:
+      span:
+        - 'span.name == "drop me"'
+  transform:
+    error_mode: ignore
+    log_statements:
+      - context: log
+        statements:
+          - set(log.observed_time, Now()) where log.observed_time_unix_nano == 0
+          - set(log.time, log.observed_time) where log.time_unix_nano == 0
+
+exporters:
+  otlp/dash0:
+    endpoint: ${env:DASH0_ENDPOINT_OTLP_GRPC_HOSTNAME}:${env:DASH0_ENDPOINT_OTLP_GRPC_PORT}
+    headers:
+      Authorization: Bearer ${env:DASH0_AUTH_TOKEN}
+      Dash0-Dataset: ${env:DASH0_DATASET}
+  debug:
+    verbosity: detailed
+
+service:
+  telemetry:
+    logs:
+      level: ${env:OPENTELEMETRY_COLLECTOR_LOG_LEVEL}
+  pipelines:
+    logs:
+      receivers:
+        - otlp
+      exporters:
+        - debug
+        - otlp/dash0
+    traces:
+      receivers:
+        - otlp
+      processors:
+        - tail_sampling
+        - filter
+        - transform
+        - batch
+      exporters:
+        - debug
+        - otlp/dash0
+    metrics:
+      receivers:
+        - otlp
+      processors:
+        - filter
+        - transform
+        - batch
+      exporters:
+        - debug
+        - otlp/dash0

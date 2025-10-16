@@ -1,0 +1,185 @@
+#!/usr/bin/env bash
+
+set -eo pipefail
+
+source ../../.env
+
+# Single trace ID to be shared across all spans
+TRACE_ID="$(date +%s)805a7c87bc2f6dab95a7f5"
+
+curl http://localhost:4318/v1/traces \
+  -X POST \
+  -H "Content-Type: application/json" \
+  -d '
+{
+  "resourceSpans": [
+    {
+      "resource": {
+        "attributes": [
+          {
+            "key": "service.name",
+            "value": { "stringValue": "frontend" }
+          },
+          {
+            "key": "policy.group",
+            "value": { "stringValue": "probabilistic-sampling" }
+          }
+        ]
+      },
+      "scopeSpans": [
+        {
+          "schemaUrl": "",
+          "scope": {
+            "attributes": []
+          },
+          "spans": [
+            {
+              "attributes": [
+                {
+                  "key": "endpoint.name",
+                  "value": { "stringValue": "OTLP via HTTP" }
+                }
+              ],
+              "startTimeUnixNano": "'$(date +%s%N)'",
+              "endTimeUnixNano": "'$(date +%s%N)'",
+              "events": [],
+              "flags": 0,
+              "kind": 1,
+              "links": [],
+              "name": "Manually Ingested Span",
+              "traceId": "'$TRACE_ID'",
+              "parentSpanId": "",
+              "spanId": "e42ea8f8e32c0e61",
+              "traceState": "",
+              "status": {
+                "code": 1,
+                "message": "Frontend - OK"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}'
+
+# Simulate minimal latency
+sleep .1
+
+curl http://localhost:4318/v1/traces \
+  -X POST \
+  -H "Content-Type: application/json" \
+  -d '
+{
+  "resourceSpans": [
+    {
+      "resource": {
+        "attributes": [
+          {
+            "key": "service.name",
+            "value": { "stringValue": "backend-billing" }
+          },
+          {
+            "key": "policy.group",
+            "value": { "stringValue": "probabilistic-sampling" }
+          }
+        ]
+      },
+      "scopeSpans": [
+        {
+          "schemaUrl": "",
+          "scope": {
+            "attributes": []
+          },
+          "spans": [
+            {
+              "attributes": [
+                {
+                  "key": "endpoint.name",
+                  "value": { "stringValue": "OTLP via HTTP" }
+                }
+              ],
+              "startTimeUnixNano": "'$(date +%s%N)'",
+              "endTimeUnixNano": "'$(date +%s%N)'",
+              "events": [],
+              "flags": 0,
+              "kind": 1,
+              "links": [],
+              "name": "Manually Ingested Span",
+              "traceId": "'$TRACE_ID'",
+              "parentSpanId": "e42ea8f8e32c0e61",
+              "spanId": "e42ea8f8e32c0e62",
+              "traceState": "",
+              "status": {
+                "code": 1,
+                "message": "Billing - OK"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}'
+
+# Simulate minimal latency
+sleep .1
+
+curl http://localhost:4318/v1/traces \
+  -X POST \
+  -H "Content-Type: application/json" \
+  -d '
+{
+  "resourceSpans": [
+    {
+      "resource": {
+        "attributes": [
+          {
+            "key": "service.name",
+            "value": { "stringValue": "backend-api" }
+          },
+          {
+            "key": "policy.group",
+            "value": { "stringValue": "probabilistic-sampling" }
+          }
+        ]
+      },
+      "scopeSpans": [
+        {
+          "schemaUrl": "",
+          "scope": {
+            "attributes": []
+          },
+          "spans": [
+            {
+              "attributes": [
+                {
+                  "key": "endpoint.name",
+                  "value": { "stringValue": "OTLP via HTTP" }
+                }
+              ],
+              "startTimeUnixNano": "'$(date +%s%N)'",
+              "endTimeUnixNano": "'$(date +%s%N)'",
+              "events": [],
+              "flags": 0,
+              "kind": 1,
+              "links": [],
+              "name": "Manually Ingested Span - probabilistic sampled",
+              "traceId": "'$TRACE_ID'",
+              "parentSpanId": "e42ea8f8e32c0e62",
+              "spanId": "e42ea8f8e32c0e63",
+              "traceState": "",
+              "status": {
+                "code": 1,
+                "message": "Backend API - OK"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}'
+
+echo -e "\nProbabilistic sampling spans sent with traceId: ${TRACE_ID}"
+echo "Note: This trace has a 50% chance of being sampled. Run multiple times to see the sampling behavior."
