@@ -93,6 +93,16 @@ A comprehensive Dapr (Distributed Application Runtime) demonstration showcasing 
 
 **Technologies**: Dapr, Java, Spring Boot, React, PostgreSQL, RabbitMQ, OpenTelemetry, Kind, Kubernetes
 
+### [NGINX logs](./nginx-logs/)
+
+Demonstrates setting up an OpenTelemetry pipeline for NGINX logs covering:
+
+- Structured JSON logging for reliable parsing.
+- Log sampling to cut down on log noise and cost.
+- Robust error log parsing.
+- Full integration with the OpenTelemetry ecosystem.
+
+
 ## Getting Started
 
 1. **Prerequisites**: Ensure you have Docker installed and a Dash0 account
