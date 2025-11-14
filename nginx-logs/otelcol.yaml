@@ -1,0 +1,109 @@
+receivers:
+  fluentforward:
+    endpoint: 0.0.0.0:8006
+
+processors:
+  batch:
+  transform/parse_nginx_logs:
+    log_statements:
+      - context: log
+        conditions:
+          - body != nil and Substring(body, 0, 2) == "{\""
+        statements:
+          - merge_maps(attributes, ParseJSON(body), "upsert")
+          - set(time, Time(attributes["timestamp"], "%Y-%m-%dT%H:%M:%S%j")) where attributes["timestamp"] != nil
+          - set(observed_time, time)
+
+          - set(attributes["log.record.original"], body)
+          - set(body, Concat(["NGINX access log - ", attributes["http.request.method"], " ", attributes["url.path"], "?", attributes["url.query"], " -> ", attributes["http.response.status_code"]], ""))
+
+          - set(attributes["client.port"], Int(attributes["client.port"]))
+          - set(attributes["server.port"], Int(attributes["server.port"]))
+          - set(attributes["http.response.status_code"], Int(attributes["http.response.status_code"]))
+          - set(attributes["http.response.body.size"], Int(attributes["http.response.body.size"]))
+          - set(attributes["network.protocol.version"], Split(attributes["network.protocol.name"], "/")[1])
+          - set(attributes["network.protocol.name"], ToLowerCase(Split(attributes["network.protocol.name"], "/")[0]))
+
+          - set(trace_id.string, attributes["trace_id"]) where attributes["trace_id"] != nil and Len(attributes["trace_id"]) == 32
+          - set(span_id.string, attributes["span_id"]) where attributes["span_id"]  != nil and Len(attributes["span_id"])  == 16
+          - set(flags, attributes["parent_sampled"]) where attributes["parent_sampled"] != nil
+          - delete_key(attributes, "trace_id")
+          - delete_key(attributes, "span_id")
+          - delete_key(attributes, "parent_sampled")
+          - delete_key(attributes, "timestamp")
+
+      - context: log
+        conditions:
+          - body != nil and IsMatch(body, "^[0-9]{4}/[0-9]{2}/[0-9]{2} ")
+        statements:
+          - merge_maps(attributes, ExtractPatterns(body, "^(?P<timestamp>\\d{4}/\\d{2}/\\d{2} \\d{2}:\\d{2}:\\d{2}) \\[(?P<level>[a-z]+)\\] (?P<pid>\\d+)#(?P<tid>\\d+):(?:\\ \\*(?P<cid>\\d+))? (?P<message>[^,]+)(?:, )?(?:(?P<raw_attrs>.+)?)?$"), "upsert")
+          - replace_pattern(attributes["raw_attrs"], "\"", "") where attributes["raw_attrs"] != nil
+          - merge_maps(attributes, ParseKeyValue(attributes["raw_attrs"], ":", ", "), "upsert") where attributes["raw_attrs"] != nil and attributes["raw_attrs"] != ""
+          - delete_key(attributes, "raw_attrs")
+
+          - set(attributes["client.address"], attributes["client"]) where attributes["client"] != nil
+          - set(attributes["http.request.header.host"], attributes["host"]) where attributes["host"] != nil
+
+          - set(attributes["server.address"], Split(attributes["host"], ":")[0]) where attributes["host"] != nil
+          - set(attributes["server.port"], Int(Split(attributes["host"], ":")[1])) where attributes["host"] != nil
+
+          - set(attributes["http.request.method"], Split(attributes["request"], " ")[0]) where attributes["request"] != nil
+          - set(attributes["url.path"], Split(attributes["request"], " ")[1]) where attributes["request"] != nil
+          - set(attributes["network.protocol.name"], ToLowerCase(Split(Split(attributes["request"], " ")[2], "/")[0])) where attributes["request"] != nil
+          - set(attributes["network.protocol.version"], Split(Split(attributes["request"], " ")[2], "/")[1]) where attributes["request"] != nil
+          - set(attributes["log.record.original"], body)
+          - set(body, attributes["message"])
+          - set(attributes["network.connection.id"], Int(attributes["cid"])) where attributes["cid"] != nil
+          - set(attributes["thread.id"], Int(attributes["tid"])) where attributes["tid"] != nil
+          - set(time, Time(attributes["timestamp"], "%Y/%m/%d %H:%M:%S")) where attributes["timestamp"] != nil
+          - set(observed_time, time) where attributes["timestamp"] != nil
+          - delete_key(attributes, "timestamp")
+          - delete_key(attributes, "tid")
+          - delete_key(attributes, "message")
+          - delete_key(attributes, "client")
+          - delete_key(attributes, "server")
+          - delete_key(attributes, "host")
+          - delete_key(attributes, "request")
+          - delete_key(attributes, "cid")
+
+      - context: log
+        statements:
+          - set(severity_text, ToUpperCase(attributes["level"])) where attributes["level"] != nil
+          - set(severity_number, 5)  where attributes["level"] == "debug"
+          - set(severity_number, 9)  where attributes["level"] == "info"
+          - set(severity_number, 9)  where attributes["level"] == "notice"
+          - set(severity_number, 13) where attributes["level"] == "warn"
+          - set(severity_number, 17) where attributes["level"] == "error"
+          - set(severity_number, 21) where attributes["level"] == "crit"
+          - set(severity_number, 23) where attributes["level"] == "alert"
+          - set(severity_number, 24) where attributes["level"] == "emerg"
+
+          - set(attributes["log.iostream"], attributes["source"])
+          - delete_key(attributes, "source")
+          - delete_key(attributes, "level")
+
+      - statements:
+          - set(resource.attributes["container.id"], log.attributes["container_id"])
+          - set(resource.attributes["container.name"], log.attributes["container_name"])
+          - set(resource.attributes["fluent.tag"], log.attributes["fluent.tag"])
+          - set(resource.attributes["process.id"], Int(log.attributes["pid"])) where log.attributes["pid"] != nil
+          - delete_key(log.attributes, "container_id")
+          - delete_key(log.attributes, "container_name")
+          - delete_key(log.attributes, "fluent.tag")
+          - delete_key(log.attributes, "pid")
+
+exporters:
+  debug:
+    verbosity: detailed
+  otlphttp/dash0:
+    endpoint: <your_dash0_endpoint>
+    headers:
+      Authorization: Bearer <your_dash0_token>
+      Dash0-Dataset: <your_dash0_dataset>
+
+service:
+  pipelines:
+    logs:
+      receivers: [fluentforward]
+      processors: [batch, transform/parse_nginx_logs]
+      exporters: [debug]
