@@ -1,0 +1,172 @@
+# Simplified OpenTelemetry Collector for Linkerd
+# Focuses on: Linkerd metrics (Prometheus) + Application/Proxy traces (OTLP)
+mode: deployment
+replicaCount: 1
+image:
+  repository: otel/opentelemetry-collector-contrib
+
+resources:
+  limits:
+    memory: 256Mi
+  requests:
+    memory: 128Mi
+
+extraEnvs:
+  - name: DASH0_AUTH_TOKEN
+    valueFrom:
+      secretKeyRef:
+        name: dash0-secrets
+        key: dash0-authorization-token
+  - name: DASH0_ENDPOINT_OTLP_GRPC_HOSTNAME
+    valueFrom:
+      secretKeyRef:
+        name: dash0-secrets
+        key: dash0-grpc-hostname
+  - name: DASH0_ENDPOINT_OTLP_GRPC_PORT
+    valueFrom:
+      secretKeyRef:
+        name: dash0-secrets
+        key: dash0-grpc-port
+
+# Minimal presets - only k8s attributes for enrichment
+presets:
+  kubernetesAttributes:
+    enabled: true
+
+clusterRole:
+  create: true
+  rules:
+    - apiGroups: [""]
+      resources: ["pods", "services", "endpoints"]
+      verbs: ["get", "list", "watch"]
+
+config:
+  processors:
+    memory_limiter:
+      check_interval: 2s
+      limit_percentage: 75
+      spike_limit_percentage: 15
+
+    batch:
+      timeout: 5s
+      send_batch_size: 512
+
+  receivers:
+    # OTLP receiver for traces from applications and Linkerd proxies
+    otlp:
+      protocols:
+        grpc:
+          endpoint: 0.0.0.0:4317
+        http:
+          endpoint: 0.0.0.0:4318
+
+    # Prometheus receiver to scrape Linkerd metrics
+    # Based on: https://linkerd.io/2.19/tasks/external-prometheus/
+    prometheus:
+      config:
+        global:
+          scrape_interval: 10s
+          scrape_timeout: 10s
+          evaluation_interval: 10s
+        scrape_configs:
+          # Linkerd control plane metrics
+          - job_name: "linkerd-controller"
+            kubernetes_sd_configs:
+              - role: pod
+                namespaces:
+                  names:
+                    - "linkerd"
+            relabel_configs:
+              - source_labels:
+                  - __meta_kubernetes_pod_container_port_name
+                action: keep
+                regex: admin-http
+              - source_labels: [__meta_kubernetes_pod_container_name]
+                action: replace
+                target_label: component
+
+          # Linkerd service mirror metrics (for multi-cluster setups)
+          - job_name: "linkerd-service-mirror"
+            kubernetes_sd_configs:
+              - role: pod
+            relabel_configs:
+              - source_labels:
+                  - __meta_kubernetes_pod_label_component
+                  - __meta_kubernetes_pod_container_port_name
+                action: keep
+                regex: linkerd-service-mirror;admin-http$
+              - source_labels: [__meta_kubernetes_pod_container_name]
+                action: replace
+                target_label: component
+
+          # Linkerd proxy metrics from all meshed pods
+          - job_name: "linkerd-proxy"
+            kubernetes_sd_configs:
+              - role: pod
+            relabel_configs:
+              - source_labels:
+                  - __meta_kubernetes_pod_container_name
+                  - __meta_kubernetes_pod_container_port_name
+                  - __meta_kubernetes_pod_label_linkerd_io_control_plane_ns
+                action: keep
+                regex: ^linkerd-proxy;linkerd-admin;linkerd$
+              - source_labels: [__meta_kubernetes_namespace]
+                action: replace
+                target_label: namespace
+              - source_labels: [__meta_kubernetes_pod_name]
+                action: replace
+                target_label: pod
+              - source_labels: [__meta_kubernetes_pod_label_linkerd_io_proxy_job]
+                action: replace
+                target_label: k8s_job
+              - action: labeldrop
+                regex: __meta_kubernetes_pod_label_linkerd_io_proxy_job
+              - action: labelmap
+                regex: __meta_kubernetes_pod_label_linkerd_io_proxy_(.+)
+              - action: labeldrop
+                regex: __meta_kubernetes_pod_label_linkerd_io_proxy_(.+)
+              - action: labelmap
+                regex: __meta_kubernetes_pod_label_linkerd_io_(.+)
+              - action: labelmap
+                regex: __meta_kubernetes_pod_label_(.+)
+                replacement: __tmp_pod_label_$1
+              - action: labelmap
+                regex: __tmp_pod_label_linkerd_io_(.+)
+                replacement: __tmp_pod_label_$1
+              - action: labeldrop
+                regex: __tmp_pod_label_linkerd_io_(.+)
+              - action: labelmap
+                regex: __tmp_pod_label_(.+)
+
+  exporters:
+    otlp/dash0:
+      auth:
+        authenticator: bearertokenauth/dash0
+      endpoint: ${env:DASH0_ENDPOINT_OTLP_GRPC_HOSTNAME}:${env:DASH0_ENDPOINT_OTLP_GRPC_PORT}
+
+  extensions:
+    bearertokenauth/dash0:
+      scheme: Bearer
+      token: ${env:DASH0_AUTH_TOKEN}
+
+  service:
+    extensions:
+      - bearertokenauth/dash0
+      - health_check
+    pipelines:
+      metrics:
+        receivers:
+          - prometheus
+        processors:
+          - memory_limiter
+          - batch
+        exporters:
+          - otlp/dash0
+      traces:
+        receivers:
+          - otlp
+        processors:
+          - memory_limiter
+          - batch
+        exporters:
+          - otlp/dash0

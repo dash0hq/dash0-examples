@@ -102,6 +102,15 @@ Demonstrates setting up an OpenTelemetry pipeline for NGINX logs covering:
 - Robust error log parsing.
 - Full integration with the OpenTelemetry ecosystem.
 
+### [Linkerd Service Mesh](./linkerd/)
+A Linkerd service mesh demo with full observability using Dash0. This demo showcases:
+- Multi-node Kind cluster with Linkerd edge release (native proxy tracing)
+- Metrics collection via Prometheus scraping of Linkerd control plane and proxy endpoints
+- Distributed tracing using Linkerd's built-in OpenTelemetry trace export
+- Emojivoto demo application with OTel-instrumented images for application-level traces
+- OpenTelemetry Collector in the Linkerd mesh forwarding telemetry to Dash0
+
+**Technologies**: Linkerd, Kubernetes (Kind), OpenTelemetry, Go, Helm
 
 ## Getting Started
 
