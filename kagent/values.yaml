@@ -1,0 +1,41 @@
+# Kagent Helm values
+# The OpenAI API key should be passed via --set or environment variable
+# Example: helm upgrade -i kagent ... --set providers.openAI.apiKey=$OPENAI_API_KEY
+
+# Enable OpenTelemetry tracing
+otel:
+  tracing:
+    enabled: true
+    exporter:
+      otlp:
+        endpoint: http://otel-collector-opentelemetry-collector.opentelemetry.svc.cluster.local:4317
+
+# Disable tool servers
+tools:
+  grafana-mcp:
+    enabled: false
+  querydoc:
+    enabled: false
+
+# Disable all pre-installed agents
+agents:
+  k8s-agent:
+    enabled: false
+  kgateway-agent:
+    enabled: false
+  istio-agent:
+    enabled: false
+  promql-agent:
+    enabled: false
+  observability-agent:
+    enabled: false
+  argo-rollouts-agent:
+    enabled: false
+  helm-agent:
+    enabled: false
+  cilium-debug-agent:
+    enabled: false
+  cilium-manager-agent:
+    enabled: false
+  cilium-policy-agent:
+    enabled: false

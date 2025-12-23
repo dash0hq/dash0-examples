@@ -1,0 +1,11 @@
+apiVersion: kagent.dev/v1alpha2
+kind: ModelConfig
+metadata:
+  name: default-model-config
+  namespace: kagent
+spec:
+  model: gpt-oss:20b
+  provider: Ollama
+  ollama:
+    # Use host.docker.internal to access Ollama running on Mac (with Metal GPU)
+    host: http://host.docker.internal:11434
