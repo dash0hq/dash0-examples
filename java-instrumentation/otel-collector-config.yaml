@@ -2,7 +2,9 @@ receivers:
   otlp:
     protocols:
       grpc:
-      http:
+        endpoint: 0.0.0.0:4317
+      http: 
+        endpoint: 0.0.0.0:4318
 
 processors:
   batch:
@@ -15,7 +17,7 @@ extensions:
 
   bearertokenauth/dash0:
     scheme: Bearer
-    token: ${env:DASH0_AUTHORIZATION_TOKEN}
+    token: ${env:DASH0_AUTH_TOKEN}
 
 exporters:
   prometheus:
