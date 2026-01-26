@@ -17,8 +17,6 @@ spec:
       app: openlit-demo-app
   template:
     metadata:
-      annotations:
-        instrumentation.openlit.io/inject-python: "true"
       labels:
         app: openlit-demo-app
         instrumentation: openlit  # OpenLIT operator watches for this label
