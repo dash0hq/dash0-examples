@@ -1,0 +1,13 @@
+---
+# AgentgatewayParameters with tracing configuration
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayParameters
+metadata:
+  name: tracing-config
+  namespace: kagent
+spec:
+  rawConfig:
+    config:
+      tracing:
+        otlpEndpoint: http://otel-collector-opentelemetry-collector.opentelemetry.svc.cluster.local:4317
+        randomSampling: true

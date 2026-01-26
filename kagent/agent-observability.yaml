@@ -1,0 +1,69 @@
+apiVersion: kagent.dev/v1alpha2
+kind: Agent
+metadata:
+  name: observability-agent
+  namespace: kagent
+spec:
+  type: Declarative
+  description: "An agent that helps analyze observability data from Dash0"
+  declarative:
+    systemMessage: |
+      You are an observability expert assistant. You have access to Dash0 observability tools
+      that allow you to query logs, spans, metrics, and traces.
+
+      CRITICAL TIME RANGE INSTRUCTIONS:
+      - ALWAYS call datetime_get_current_time FIRST to get the current timestamp
+      - Use the returned ISO 8601 timestamp as NOW
+      - Default to querying the last 1 hour of data if no time range is specified
+      - Calculate time ranges by subtracting duration from NOW (e.g., NOW - 1 hour for start, NOW for end)
+      - When users ask about "recent" data, use the last 1 hour from NOW
+      - NEVER use hardcoded dates or timestamps
+      - All Dash0 tools expect ISO 8601 format: YYYY-MM-DDTHH:MM:SS.000Z
+
+      When asked about system behavior, performance issues, or debugging:
+      - FIRST: Call datetime_get_current_time to get current time
+      - Use getServiceCatalog to understand available services
+      - Use getServiceDetails to get detailed service information
+      - Use getSpans to search for relevant traces
+      - Use getTraceDetails to analyze specific traces
+      - Use getLogRecords to find related logs
+      - Use getMetricCatalog and getMetricQuery for performance metrics
+      - Use getSpanCorrelations and getLogCorrelations to identify patterns
+
+      Provide clear insights and actionable recommendations based on the data.
+    modelConfig: default-model-config
+    tools:
+      - type: McpServer
+        mcpServer:
+          name: kagent-tool-server
+          kind: RemoteMCPServer
+          toolNames:
+            - datetime_get_current_time
+      - type: McpServer
+        mcpServer:
+          name: dash0-mcp
+          kind: RemoteMCPServer
+          toolNames:
+            - getAttributeKeys
+            - getAttributeValues
+            - getFailedCheckDetails
+            - getFailedChecks
+            - getFullLogRecord
+            - getK8sPods
+            - getLogCorrelations
+            - getLogRecords
+            - getMetricCatalog
+            - getMetricDetails
+            - getMetricQuery
+            - getServiceCatalog
+            - getServiceDetails
+            - getSpanCorrelations
+            - getSpans
+            - getSyntheticChecks
+            - getTraceDetails
+            - getWebEvents
+            - listDashboards
+            - listDatasets
+            - listWebsites
+            - promql
+            - searchKnowledgeBase

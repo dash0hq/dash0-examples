@@ -22,6 +22,17 @@ Examples showing how to configure and deploy the OpenTelemetry Collector in vari
 
 **Technologies**: OpenTelemetry Collector, Docker, OTLP
 
+### [Kagent with LLM Observability](./kagent/)
+A comprehensive demo showcasing AI agent orchestration with full OpenTelemetry observability for LLM calls. This demo demonstrates:
+- Kagent agent framework with Anthropic Claude as the LLM provider
+- OpenTelemetry tracing for LLM inference calls and agent workflows
+- Model Context Protocol (MCP) integration with Dash0 for observability queries
+- Observability agent with 23 Dash0 MCP tools for querying logs, traces, and metrics
+- Web frontend for querying observability data via natural language
+- Real-world example of AI agents using MCP tools to query observability data
+
+**Technologies**: Kagent, Anthropic Claude, OpenTelemetry, MCP (Model Context Protocol), Kubernetes (Kind), Helm
+
 ### [Traefik Ingress with Observability](./traefik/)
 A complete Traefik ingress controller demo with full observability using OpenTelemetry and Dash0. This demo showcases:
 - Multi-node Kind cluster with Traefik v3.5 as ingress controller
