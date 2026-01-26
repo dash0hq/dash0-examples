@@ -44,6 +44,17 @@ A demonstration of LangChain applications instrumented with OpenTelemetry, showc
 
 **Technologies**: LangChain, Anthropic Claude, OpenTelemetry, Python, Docker
 
+### [OpenLIT Auto-Instrumentation](./openlit/)
+A demonstration of zero-code auto-instrumentation for LLM applications using the OpenLIT operator:
+- OpenLIT operator for automatic instrumentation injection into Python applications
+- Sample FastAPI application with Anthropic Claude integration
+- Kubernetes deployment with Kind cluster
+- Zero-code observability - no manual instrumentation required
+- Automatic OTLP trace export to Dash0 via OpenTelemetry Collector
+- Runtime instrumentation injection using pod labels
+
+**Technologies**: OpenLIT, Anthropic Claude, Kubernetes (Kind), Python, FastAPI, OpenTelemetry
+
 ### [Traefik Ingress with Observability](./traefik/)
 A complete Traefik ingress controller demo with full observability using OpenTelemetry and Dash0. This demo showcases:
 - Multi-node Kind cluster with Traefik v3.5 as ingress controller
