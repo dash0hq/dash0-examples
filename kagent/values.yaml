@@ -1,14 +1,29 @@
 # Kagent Helm values
-# The OpenAI API key should be passed via --set or environment variable
-# Example: helm upgrade -i kagent ... --set providers.openAI.apiKey=$OPENAI_API_KEY
-
-# Enable OpenTelemetry tracing
+# Enable OpenTelemetry tracing and logging
 otel:
   tracing:
     enabled: true
     exporter:
       otlp:
         endpoint: http://otel-collector-opentelemetry-collector.opentelemetry.svc.cluster.local:4317
+        timeout: 15
+        insecure: true
+  logging:
+    enabled: true
+    exporter:
+      otlp:
+        endpoint: http://otel-collector-opentelemetry-collector.opentelemetry.svc.cluster.local:4317
+        timeout: 15
+        insecure: true
+
+# Configure Anthropic as default provider
+providers:
+  default: anthropic
+  anthropic:
+    provider: Anthropic
+    model: claude-sonnet-4-20250514
+    apiKeySecretRef: anthropic-api-key
+    apiKeySecretKey: api-key
 
 # Disable tool servers
 tools:

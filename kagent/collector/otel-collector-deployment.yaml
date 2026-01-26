@@ -79,3 +79,19 @@ config:
         exporters:
           - otlp/dash0
           - debug
+      logs:
+        receivers:
+          - otlp
+        processors:
+          - batch
+        exporters:
+          - otlp/dash0
+          - debug
+      metrics:
+        receivers:
+          - otlp
+        processors:
+          - batch
+        exporters:
+          - otlp/dash0
+          - debug

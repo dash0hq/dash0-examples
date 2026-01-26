@@ -1,0 +1,15 @@
+apiVersion: kagent.dev/v1alpha2
+kind: RemoteMCPServer
+metadata:
+  name: dash0-mcp
+  namespace: kagent
+spec:
+  description: "Dash0 observability MCP server for querying logs, traces, and metrics"
+  protocol: STREAMABLE_HTTP
+  url: https://api.eu-west-1.aws.dash0-dev.com/mcp
+  headersFrom:
+    - name: "Authorization"
+      valueFrom:
+        type: Secret
+        name: dash0-mcp-token
+        key: token
