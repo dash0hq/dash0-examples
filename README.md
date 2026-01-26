@@ -33,6 +33,17 @@ A comprehensive demo showcasing AI agent orchestration with full OpenTelemetry o
 
 **Technologies**: Kagent, Anthropic Claude, OpenTelemetry, MCP (Model Context Protocol), Kubernetes (Kind), Helm
 
+### [LangChain with OpenTelemetry](./langchain/)
+A demonstration of LangChain applications instrumented with OpenTelemetry, showcasing both manual and automatic instrumentation approaches:
+- Manual instrumentation: Explicit OpenTelemetry code with custom spans and full control
+- Auto-instrumentation: Zero-code instrumentation using `opentelemetry-instrument`
+- LangChain integration with Anthropic Claude
+- Chain composition examples (prompt | llm | parser)
+- Streaming response handling with tracing
+- Local OpenTelemetry Collector with Docker Compose
+
+**Technologies**: LangChain, Anthropic Claude, OpenTelemetry, Python, Docker
+
 ### [Traefik Ingress with Observability](./traefik/)
 A complete Traefik ingress controller demo with full observability using OpenTelemetry and Dash0. This demo showcases:
 - Multi-node Kind cluster with Traefik v3.5 as ingress controller
