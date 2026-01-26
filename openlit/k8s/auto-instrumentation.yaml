@@ -1,0 +1,14 @@
+apiVersion: openlit.io/v1alpha1
+kind: AutoInstrumentation
+metadata:
+  name: openlit-instrumentation
+  namespace: demo
+spec:
+  selector:
+    matchLabels:
+      instrumentation: openlit
+  python:
+    instrumentation:
+      enabled: true
+  otlp:
+    endpoint: "http://otel-collector-opentelemetry-collector.opentelemetry.svc.cluster.local:4318"
