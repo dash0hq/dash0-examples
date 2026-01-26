@@ -1,8 +1,10 @@
 # Use an official OpenJDK image
-FROM eclipse-temurin:17-jdk
+FROM azul/zulu-openjdk:17-latest
 
 # Set the working directory inside the container
 WORKDIR /app
+
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
 # Download OpenTelemetry Java agent
 RUN curl -L -o opentelemetry-javaagent.jar https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/latest/download/opentelemetry-javaagent.jar
