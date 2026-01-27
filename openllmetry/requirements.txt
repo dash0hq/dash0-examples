@@ -1,0 +1,21 @@
+# Anthropic SDK
+anthropic>=0.40.0
+
+# OpenLLMetry (Traceloop SDK)
+traceloop-sdk>=0.30.0
+
+# OpenTelemetry dependencies (usually installed with traceloop-sdk)
+opentelemetry-api>=1.20.0
+opentelemetry-sdk>=1.20.0
+opentelemetry-exporter-otlp>=1.20.0
+
+# Auto-instrumentation packages
+opentelemetry-distro>=0.40b0
+opentelemetry-instrumentation-httpx>=0.40b0
+opentelemetry-instrumentation-fastapi>=0.40b0
+opentelemetry-instrumentation-asgi>=0.40b0
+
+# Utilities
+python-dotenv>=1.0.0
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0

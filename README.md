@@ -55,6 +55,17 @@ A demonstration of zero-code auto-instrumentation for LLM applications using the
 
 **Technologies**: OpenLIT, Anthropic Claude, Kubernetes (Kind), Python, FastAPI, OpenTelemetry
 
+### [OpenLLMetry Instrumentation](./openllmetry/)
+A demonstration of lightweight OpenTelemetry-based observability for LLM applications using OpenLLMetry (Traceloop SDK):
+- Automatic instrumentation for Anthropic API calls with minimal configuration
+- Simple Python application showing multi-turn conversations and streaming
+- Token usage and cost tracking
+- Docker Compose deployment with local OpenTelemetry Collector
+- Direct integration with OpenTelemetry ecosystem
+- Zero-code instrumentation via Traceloop.init()
+
+**Technologies**: OpenLLMetry, Traceloop SDK, Anthropic Claude, Python, OpenTelemetry, Docker
+
 ### [Traefik Ingress with Observability](./traefik/)
 A complete Traefik ingress controller demo with full observability using OpenTelemetry and Dash0. This demo showcases:
 - Multi-node Kind cluster with Traefik v3.5 as ingress controller
