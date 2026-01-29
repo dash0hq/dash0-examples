@@ -1,0 +1,212 @@
+mode: deployment
+replicaCount: 1
+image:
+  repository: otel/opentelemetry-collector-contrib
+
+resources:
+  limits:
+    memory: 512Mi
+  requests:
+    memory: 256Mi
+
+extraEnvs:
+  - name: DASH0_AUTH_TOKEN
+    valueFrom:
+      secretKeyRef:
+        name: dash0-secrets
+        key: dash0-authorization-token
+  - name: DASH0_ENDPOINT_OTLP_GRPC_HOSTNAME
+    valueFrom:
+      secretKeyRef:
+        name: dash0-secrets
+        key: dash0-grpc-hostname
+  - name: DASH0_ENDPOINT_OTLP_GRPC_PORT
+    valueFrom:
+      secretKeyRef:
+        name: dash0-secrets
+        key: dash0-grpc-port
+
+presets:
+  clusterMetrics:
+    enabled: true
+
+clusterRole:
+  create: true
+  rules:
+    - apiGroups: [""]
+      resources: ["pods", "services", "endpoints"]
+      verbs: ["get", "list", "watch"]
+    - apiGroups: [""]
+      resources: ["nodes"]
+      verbs: ["get", "list", "watch"]
+
+config:
+  processors:
+    # Memory limiter to prevent OOM
+    memory_limiter:
+      check_interval: 2s
+      limit_percentage: 75
+      spike_limit_percentage: 15
+
+    # Batch processor for efficient export
+    batch:
+      timeout: 5s
+      send_batch_size: 512
+
+  receivers:
+    otlp:
+      protocols:
+        grpc: {}
+        http: {}
+
+    # Prometheus receiver to scrape kgateway metrics
+    prometheus:
+      config:
+        scrape_configs:
+        # kgateway controller metrics
+        - job_name: 'kgateway-controller'
+          kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+              - kgateway-system
+          relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_kgateway]
+            action: keep
+            regex: kgateway
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+          - source_labels: [__meta_kubernetes_pod_name]
+            action: replace
+            target_label: instance
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+          - source_labels: [__meta_kubernetes_namespace]
+            action: replace
+            target_label: kubernetes_namespace
+          - source_labels: [__meta_kubernetes_pod_name]
+            action: replace
+            target_label: kubernetes_pod_name
+          - action: replace
+            target_label: component
+            replacement: kgateway-controller
+        # kgateway gateway proxy metrics (Envoy)
+        - job_name: 'kgateway-proxy'
+          kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+              - kgateway-system
+          relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_kgateway]
+            action: keep
+            regex: kube-gateway
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+          - source_labels: [__meta_kubernetes_pod_name]
+            action: replace
+            target_label: instance
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+          - source_labels: [__meta_kubernetes_namespace]
+            action: replace
+            target_label: kubernetes_namespace
+          - source_labels: [__meta_kubernetes_pod_name]
+            action: replace
+            target_label: kubernetes_pod_name
+          - action: replace
+            target_label: component
+            replacement: kgateway-proxy
+
+  exporters:
+    # Dash0 exporter (primary backend)
+    otlp/dash0:
+      auth:
+        authenticator: bearertokenauth/dash0
+      endpoint: ${env:DASH0_ENDPOINT_OTLP_GRPC_HOSTNAME}:${env:DASH0_ENDPOINT_OTLP_GRPC_PORT}
+
+    # Jaeger exporter (local traces)
+    otlp/jaeger:
+      endpoint: jaeger-collector.default.svc.cluster.local:4317
+      tls:
+        insecure: true
+
+    # Prometheus exporter (local metrics)
+    otlphttp/prometheus:
+      endpoint: http://prometheus.default.svc.cluster.local:9090/api/v1/otlp
+      tls:
+        insecure: true
+
+    # OpenSearch exporter (local logs)
+    opensearch/log:
+      http:
+        endpoint: https://opensearch-cluster-master.default.svc.cluster.local:9200
+        auth:
+          authenticator: basicauth/opensearch
+        tls:
+          insecure_skip_verify: true
+      logs_index: otel-logs
+
+  extensions:
+    bearertokenauth/dash0:
+      scheme: Bearer
+      token: ${env:DASH0_AUTH_TOKEN}
+
+    basicauth/opensearch:
+      client_auth:
+        username: admin
+        password: "SecureP@ssw0rd123"
+
+  service:
+    extensions:
+      - bearertokenauth/dash0
+      - basicauth/opensearch
+      - health_check
+    pipelines:
+      logs:
+        receivers:
+          - otlp
+        processors:
+          - memory_limiter
+          - batch
+        exporters:
+          - otlp/dash0
+          - opensearch/log
+      metrics:
+        receivers:
+          - otlp
+          - prometheus
+          - k8s_cluster
+        processors:
+          - memory_limiter
+          - batch
+        exporters:
+          - otlp/dash0
+          - otlphttp/prometheus
+      traces:
+        receivers:
+          - otlp
+        processors:
+          - memory_limiter
+          - batch
+        exporters:
+          - otlp/dash0
+          - otlp/jaeger

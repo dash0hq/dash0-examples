@@ -1,0 +1,17 @@
+apiVersion: gateway.kgateway.dev/v1alpha1
+kind: GatewayParameters
+metadata:
+  name: http-params
+  namespace: kgateway-system
+spec:
+  kube:
+    deployment:
+      replicas: 1
+    podTemplate:
+      extraVolumes:
+      - name: tmp
+        emptyDir: {}
+    envoyContainer:
+      extraVolumeMounts:
+      - name: tmp
+        mountPath: /tmp
