@@ -109,6 +109,18 @@ A complete Contour ingress controller demo with full observability using OpenTel
 
 **Technologies**: Contour, Envoy, Gateway API, Kubernetes (Kind), OpenTelemetry, Node.js, Helm
 
+### [kgateway with Gateway API](./kgateway/)
+A complete kgateway ingress controller demo with full observability using OpenTelemetry and Dash0. This demo showcases:
+- Multi-node Kind cluster with kgateway v2.1 (Envoy-based Gateway API implementation)
+- Native OTLP/gRPC for distributed tracing and access logs
+- Automatic trace correlation in access logs (TraceID/SpanID in LogRecord structure)
+- OpenTelemetry Collectors (DaemonSet + Deployment) for comprehensive telemetry collection
+- Prometheus metrics from controller and Envoy proxy
+- Node.js demo application with auto-instrumentation and W3C trace context propagation
+- HTTPListenerPolicy for Gateway API-native telemetry configuration
+
+**Technologies**: kgateway, Envoy, Gateway API, Kubernetes (Kind), OpenTelemetry, Node.js, Helm
+
 ### [Host Metrics Collection](./hostmetrics/)
 Demonstrates collecting system-level metrics from Kubernetes nodes using the OpenTelemetry Collector's hostmetrics receiver:
 - 2-node Kind cluster setup

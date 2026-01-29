@@ -1,0 +1,14 @@
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: ReferenceGrant
+metadata:
+  name: allow-otel-collector-access
+  namespace: opentelemetry
+spec:
+  from:
+  - group: gateway.kgateway.dev
+    kind: HTTPListenerPolicy
+    namespace: kgateway-system
+  to:
+  - group: ""
+    kind: Service
+    name: otel-collector-opentelemetry-collector
