@@ -1,0 +1,61 @@
+#!/bin/bash
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+echo "=========================================="
+echo "Agentgateway Demo Setup"
+echo "=========================================="
+echo ""
+
+# Run all setup scripts
+"$SCRIPT_DIR/scripts/01_create_cluster.sh"
+echo ""
+
+"$SCRIPT_DIR/scripts/02_install_infrastructure.sh"
+echo ""
+
+"$SCRIPT_DIR/scripts/03_install_agentgateway.sh"
+echo ""
+
+"$SCRIPT_DIR/scripts/04_install_collector.sh"
+echo ""
+
+"$SCRIPT_DIR/scripts/05_deploy_apps.sh"
+echo ""
+
+echo "=========================================="
+echo "Setup Complete!"
+echo "=========================================="
+echo ""
+echo "Next steps:"
+echo ""
+echo "  1. Access the gateway:"
+echo "     kubectl port-forward -n agentgateway-system svc/ai-gateway 8080:80"
+echo ""
+echo "  2. Test the Anthropic integration:"
+echo "     curl -X POST http://localhost:8080/v1/messages \\"
+echo "       -H 'Content-Type: application/json' \\"
+echo "       -d '{"
+echo "         \"model\": \"claude-sonnet-4-20250514\","
+echo "         \"max_tokens\": 100,"
+echo "         \"messages\": [{"
+echo "           \"role\": \"user\","
+echo "           \"content\": \"What is an AI gateway?\""
+echo "         }]"
+echo "       }'"
+echo ""
+echo "  3. View structured logs:"
+echo "     kubectl logs -n agentgateway-system deployment/ai-gateway --tail=50 | grep gen_ai"
+echo ""
+echo "  4. View traces in Dash0:"
+echo "     Filter by service.name = ai-gateway"
+echo ""
+echo "  5. View traces in Jaeger:"
+echo "     kubectl port-forward -n default svc/jaeger-query 16686:16686"
+echo "     Open http://localhost:16686"
+echo ""
+echo "  6. View metrics in Prometheus:"
+echo "     kubectl port-forward -n default svc/prometheus 9090:9090"
+echo "     Open http://localhost:9090"
+echo ""
