@@ -1,0 +1,15 @@
+---
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: ReferenceGrant
+metadata:
+  name: allow-agentgateway-otel-access
+  namespace: opentelemetry
+spec:
+  from:
+    - group: agentgateway.dev
+      kind: AgentgatewayPolicy
+      namespace: agentgateway-system
+  to:
+    - group: ""
+      kind: Service
+      name: otel-collector-opentelemetry-collector

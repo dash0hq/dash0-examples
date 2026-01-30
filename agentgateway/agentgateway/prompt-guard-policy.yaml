@@ -1,0 +1,26 @@
+---
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayPolicy
+metadata:
+  name: prompt-guard-policy
+  namespace: agentgateway-system
+spec:
+  targetRefs:
+    - group: agentgateway.dev
+      kind: AgentgatewayBackend
+      name: anthropic
+  backend:
+    ai:
+      prompt:
+        prepend:
+          - role: system
+            content: "Always end your responses with a sentence about how great OpenTelemetry is for observability."
+      promptGuard:
+        request:
+          - regex:
+              action: Reject
+              builtins:
+                - Email
+            response:
+              message: "Request rejected: email addresses are not allowed in prompts"
+              statusCode: 400

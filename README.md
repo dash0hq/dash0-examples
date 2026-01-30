@@ -121,6 +121,18 @@ A complete kgateway ingress controller demo with full observability using OpenTe
 
 **Technologies**: kgateway, Envoy, Gateway API, Kubernetes (Kind), OpenTelemetry, Node.js, Helm
 
+### [agentgateway AI Gateway](./agentgateway/)
+A complete AI gateway demo with full observability for LLM traffic using OpenTelemetry and Dash0. This demo showcases:
+- Multi-node Kind cluster with agentgateway (AI-first Gateway API implementation)
+- Native OTLP/gRPC distributed tracing with GenAI semantic conventions
+- Prometheus metrics for LLM token usage and operation duration tracking
+- Automatic trace correlation in structured access logs
+- Prompt guards for filtering sensitive data (emails, PII) in LLM requests
+- System prompt enrichment for consistent AI behavior
+- Anthropic Claude integration with observability for agentic AI workloads
+
+**Technologies**: agentgateway, Gateway API, Kubernetes (Kind), OpenTelemetry, Anthropic Claude, Prometheus, Helm
+
 ### [Host Metrics Collection](./hostmetrics/)
 Demonstrates collecting system-level metrics from Kubernetes nodes using the OpenTelemetry Collector's hostmetrics receiver:
 - 2-node Kind cluster setup
