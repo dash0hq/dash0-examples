@@ -33,6 +33,7 @@ spec:
     includePodDetail: true
     serviceName: "contour-gateway"
     maxPathTagLength: 256
+    overallSampling: "100"
     extensionService:
       namespace: opentelemetry
       name: otel-collector

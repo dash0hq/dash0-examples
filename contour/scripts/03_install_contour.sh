@@ -29,16 +29,14 @@ if ! kubectl get namespace opentelemetry &>/dev/null; then
     exit 1
 fi
 
-echo -e "${BLUE}Step 1/6: Installing Gateway API CRDs...${NC}"
-kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.0.0/standard-install.yaml
-
-echo -e "${BLUE}Step 2/6: Installing Contour Gateway Provisioner...${NC}"
+echo -e "${BLUE}Step 1/6: Installing Contour Gateway Provisioner (includes Gateway API CRDs)...${NC}"
 kubectl apply -f https://projectcontour.io/quickstart/contour-gateway-provisioner.yaml
 
-echo -e "${BLUE}Step 3/6: Waiting for Contour Gateway Provisioner to be ready...${NC}"
+echo -e "${BLUE}Step 2/6: Waiting for Contour Gateway Provisioner to be ready...${NC}"
+
 kubectl wait --timeout=300s --for=condition=Available deployment/contour-gateway-provisioner -n projectcontour
 
-echo -e "${BLUE}Ensuring ExtensionService CRD is ready...${NC}"
+echo -e "${BLUE}Step 3/6: Ensuring ExtensionService CRD is ready...${NC}"
 kubectl wait --timeout=60s --for condition=established crd/extensionservices.projectcontour.io
 
 echo -e "${BLUE}Step 4/6: Creating OpenTelemetry extension service...${NC}"

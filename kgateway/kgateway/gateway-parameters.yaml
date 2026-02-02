@@ -15,3 +15,6 @@ spec:
       extraVolumeMounts:
       - name: tmp
         mountPath: /tmp
+      env:
+      - name: OTEL_RESOURCE_ATTRIBUTES
+        value: "custom.test.attribute=test-value,custom.environment=kgateway-demo,custom.team=platform"

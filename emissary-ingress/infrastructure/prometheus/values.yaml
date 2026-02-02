@@ -1,0 +1,26 @@
+alertmanager:
+  enabled: false
+configmapReload:
+  prometheus:
+    enabled: false
+kube-state-metrics:
+  enabled: false
+prometheus-node-exporter:
+  enabled: false
+prometheus-pushgateway:
+  enabled: false
+server:
+  fullnameOverride: prometheus
+  extraFlags:
+    - "enable-feature=exemplar-storage"
+    - "web.enable-otlp-receiver"
+    - "log.level=debug"
+  tsdb:
+    out_of_order_time_window: 30m
+  persistentVolume:
+    enabled: false
+  service:
+    servicePort: 9090
+  resources:
+    limits:
+      memory: 300Mi

@@ -1,6 +1,6 @@
 mode: daemonset
 image:
-  repository: otel/opentelemetry-collector-k8s
+  repository: otel/opentelemetry-collector-contrib
 
 resources:
   limits:
@@ -88,14 +88,15 @@ config:
           - k8s.pod.uid
           - k8s.pod.start_time
           - k8s.container.name
-        labels:
-          - from: pod
-            key_regex: (.*)
-            tag_name: k8s.pod.label.$${1}
-        annotations:
-          - from: pod
-            key_regex: (.*)
-            tag_name: k8s.pod.annotation.$${1}
+        # Disabled labels/annotations to avoid OpenSearch mapping conflicts
+        # labels:
+        #   - from: pod
+        #     key_regex: (.*)
+        #     tag_name: k8s.pod.label.$${1}
+        # annotations:
+        #   - from: pod
+        #     key_regex: (.*)
+        #     tag_name: k8s.pod.annotation.$${1}
       filter:
         node_from_env_var: K8S_NODE_NAME
       passthrough: false
@@ -113,12 +114,6 @@ config:
     kubeletstats:
       insecure_skip_verify: true # For testing purposes. Remove for production.
       metrics:
-        container.cpu.utilization:
-          enabled: false
-        k8s.node.cpu.utilization:
-          enabled: false
-        k8s.pod.cpu.utilization:
-          enabled: false
         container.cpu.usage:
           enabled: true
         k8s.node.cpu.usage:
@@ -135,21 +130,35 @@ config:
           enabled: true
 
   exporters:
-    debug:
-      verbosity: detailed
     otlp/dash0:
       auth:
         authenticator: bearertokenauth/dash0
       endpoint: ${env:DASH0_ENDPOINT_OTLP_GRPC_HOSTNAME}:${env:DASH0_ENDPOINT_OTLP_GRPC_PORT}
+
+    # OpenSearch exporter (local logs)
+    opensearch/log:
+      http:
+        endpoint: https://opensearch-cluster-master.default.svc.cluster.local:9200
+        auth:
+          authenticator: basicauth/opensearch
+        tls:
+          insecure_skip_verify: true
+      logs_index: otel-logs
 
   extensions:
     bearertokenauth/dash0:
       scheme: Bearer
       token: ${env:DASH0_AUTH_TOKEN}
 
+    basicauth/opensearch:
+      client_auth:
+        username: admin
+        password: "SecureP@ssw0rd123"
+
   service:
     extensions:
       - bearertokenauth/dash0
+      - basicauth/opensearch
       - health_check
     pipelines:
       logs:
@@ -160,7 +169,7 @@ config:
           - batch
         exporters:
           - otlp/dash0
-          - debug
+          - opensearch/log
       metrics:
         processors:
           - memory_limiter
