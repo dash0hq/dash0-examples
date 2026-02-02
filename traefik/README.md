@@ -5,7 +5,7 @@ This demo sets up a complete Traefik ingress controller environment with full ob
 ## Features
 
 - Multi-node Kind cluster with ingress support
-- Traefik v3.5 as ingress controller with OTLP observability
+- Traefik v3.6.7 as ingress controller with OTLP observability
 - OpenTelemetry Collector (DaemonSet + Deployment)
 - OTLP metrics, tracing, and logs from Traefik (HTTP/gRPC endpoints)
 - Direct OTLP log export with automatic trace correlation

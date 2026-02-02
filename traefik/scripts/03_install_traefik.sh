@@ -44,6 +44,7 @@ kubectl create namespace traefik --dry-run=client -o yaml | kubectl apply -f -
 echo -e "${BLUE}Step 3/3: Installing Traefik with Helm...${NC}"
 helm upgrade --install traefik traefik/traefik \
     --namespace traefik \
+    --version 39.0.0 \
     --create-namespace \
     -f "${PROJECT_ROOT}/traefik/values.yaml"
 
