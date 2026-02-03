@@ -3,6 +3,12 @@
 
 replicaCount: 2
 
+# Pod annotations for Prometheus scraping
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8877"
+  prometheus.io/path: "/metrics"
+
 # Environment variables for telemetry
 env:
   AMBASSADOR_CLUSTER_ID: "emissary-demo"

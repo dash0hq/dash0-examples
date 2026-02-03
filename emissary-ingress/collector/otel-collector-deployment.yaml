@@ -52,7 +52,7 @@ config:
             scrape_interval: 15s
             static_configs:
               - targets:
-                - emissary-ingress-admin.emissary.svc.cluster.local:8877
+                - emissary-admin.emissary.svc.cluster.local:8877
             metrics_path: /metrics
 
   processors:
