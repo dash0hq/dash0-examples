@@ -60,13 +60,13 @@ meshConfig:
   extensionProviders:
   - name: otel
     opentelemetry:
-      service: opentelemetry/otel-collector-opentelemetry-collector.opentelemetry.svc.cluster.local
+      service: otel-collector-opentelemetry-collector.opentelemetry.svc.cluster.local
       port: 4317
       resource_detectors:
         environment: {}
   - name: otel-access-logging
     envoyOtelAls:
-      service: opentelemetry/otel-collector-opentelemetry-collector.opentelemetry.svc.cluster.local
+      service: otel-collector-opentelemetry-collector.opentelemetry.svc.cluster.local
       port: 4317
       resourceDetectors:
         environment: {}
