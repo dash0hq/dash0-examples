@@ -1,0 +1,18 @@
+{
+  "name": "service-a",
+  "version": "1.0.0",
+  "description": "Service A - frontend service with OpenTelemetry auto-instrumentation",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node --require @opentelemetry/auto-instrumentations-node/register src/index.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "@opentelemetry/api": "^1.7.0",
+    "@opentelemetry/sdk-node": "^0.45.0",
+    "@opentelemetry/auto-instrumentations-node": "^0.41.0",
+    "@opentelemetry/exporter-trace-otlp-http": "^0.45.0",
+    "@opentelemetry/exporter-metrics-otlp-http": "^0.45.0",
+    "@opentelemetry/sdk-metrics": "^1.18.0"
+  }
+}

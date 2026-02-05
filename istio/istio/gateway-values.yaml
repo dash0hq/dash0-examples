@@ -1,0 +1,31 @@
+# Istio Ingress Gateway Helm Values
+
+service:
+  type: NodePort
+  ports:
+  - name: http2
+    port: 80
+    targetPort: 8080
+    nodePort: 30080
+    protocol: TCP
+  - name: https
+    port: 443
+    targetPort: 8443
+    nodePort: 30443
+    protocol: TCP
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "15020"
+  prometheus.io/path: "/stats/prometheus"
+
+# Environment variables for OTel resource attributes
+env:
+  OTEL_RESOURCE_ATTRIBUTES: "service.name=istio-ingressgateway,service.namespace=istio-system"
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    memory: 512Mi

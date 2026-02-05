@@ -1,0 +1,28 @@
+apiVersion: telemetry.istio.io/v1
+kind: Telemetry
+metadata:
+  name: mesh-telemetry
+  namespace: istio-system
+spec:
+  # Configure tracing for all workloads
+  tracing:
+  - providers:
+    - name: otel
+    randomSamplingPercentage: 100.0
+    customTags:
+      environment:
+        literal:
+          value: "demo"
+      cluster:
+        literal:
+          value: "istio-demo"
+---
+apiVersion: telemetry.istio.io/v1
+kind: Telemetry
+metadata:
+  name: access-logs
+  namespace: demo
+spec:
+  accessLogging:
+  - providers:
+    - name: otel-access-logging

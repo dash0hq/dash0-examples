@@ -1,0 +1,31 @@
+singleNode: true
+
+image:
+  tag: "2.14.0"
+
+extraEnvs:
+  - name: discovery.type
+    value: single-node
+  - name: OPENSEARCH_INITIAL_ADMIN_PASSWORD
+    value: "SecureP@ssw0rd123"
+
+opensearchJavaOpts: "-Xms512M -Xmx512M"
+
+resources:
+  limits:
+    memory: 1Gi
+    cpu: "1"
+  requests:
+    memory: 512Mi
+    cpu: "500m"
+
+persistence:
+  enabled: false
+
+service:
+  type: ClusterIP
+  httpPort: 9200
+
+securityConfig:
+  enabled: true
+  path: "/usr/share/opensearch/config/opensearch-security"

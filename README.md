@@ -180,6 +180,19 @@ A Linkerd service mesh demo with full observability using Dash0. This demo showc
 
 **Technologies**: Linkerd, Kubernetes (Kind), OpenTelemetry, Go, Helm
 
+### [Istio Service Mesh](./istio/)
+A comprehensive Istio service mesh demo with full observability using OpenTelemetry and Dash0. This demo showcases:
+- Multi-node Kind cluster with Istio 1.28.3 service mesh
+- Native OTLP/gRPC for distributed tracing from Envoy sidecars and ingress gateway
+- OTLP access logs via envoyOtelAls provider with trace/span correlation
+- Prometheus metrics from Istio control plane and Envoy proxies
+- W3C Trace Context and B3 propagation support across the mesh
+- Two-service demo (service-a → service-b) with auto-instrumented Node.js applications
+- Complete OpenTelemetry maturity evaluation documenting gaps and production considerations
+- OpenTelemetry Collector with k8sattributes processor for Kubernetes resource enrichment
+
+**Technologies**: Istio, Envoy, Kubernetes (Kind), OpenTelemetry, Node.js, Helm, Prometheus
+
 ## Getting Started
 
 1. **Prerequisites**: Ensure you have Docker installed and a Dash0 account

@@ -1,0 +1,17 @@
+apiVersion: telemetry.istio.io/v1
+kind: Telemetry
+metadata:
+  name: gateway-telemetry
+  namespace: istio-system
+spec:
+  # Apply to ingress gateway workloads
+  selector:
+    matchLabels:
+      istio: ingressgateway
+  tracing:
+  - providers:
+    - name: otel
+    randomSamplingPercentage: 100.0
+  accessLogging:
+  - providers:
+    - name: otel-access-logging

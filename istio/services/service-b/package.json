@@ -1,0 +1,14 @@
+{
+  "name": "service-b",
+  "version": "1.0.0",
+  "description": "Service B - backend service with OpenTelemetry auto-instrumentation",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node --require @opentelemetry/auto-instrumentations-node/register src/index.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "@opentelemetry/api": "^1.7.0",
+    "@opentelemetry/auto-instrumentations-node": "^0.41.0"
+  }
+}
