@@ -20,29 +20,23 @@ PROJECT_ROOT="$( cd "${SCRIPT_DIR}/.." && pwd )"
 
 # Source .env file from root directory
 ENV_FILE="${PROJECT_ROOT}/../.env"
+DASH0_ENABLED=false
+
 if [ -f "$ENV_FILE" ]; then
     source "$ENV_FILE"
     echo -e "${GREEN}✓ Loaded environment from ${ENV_FILE}${NC}"
+
+    # Check if Dash0 credentials are configured
+    if [ -n "$DASH0_AUTH_TOKEN" ] && [ "$DASH0_AUTH_TOKEN" != "auth_abc123" ]; then
+        DASH0_ENABLED=true
+        echo -e "${GREEN}✓ Dash0 export enabled${NC}"
+    else
+        echo -e "${YELLOW}ℹ Dash0 export disabled (DASH0_AUTH_TOKEN not set)${NC}"
+        echo -e "${YELLOW}  Telemetry will only be exported to local observability stack${NC}"
+    fi
 else
     echo -e "${YELLOW}⚠️  No .env file found at ${ENV_FILE}${NC}"
-    echo "Please copy .env.template to .env in the root directory and configure it."
-    echo ""
-    echo "Required variables:"
-    echo "  - DASH0_AUTH_TOKEN"
-    echo "  - DASH0_ENDPOINT_OTLP_GRPC_HOSTNAME"
-    echo "  - DASH0_ENDPOINT_OTLP_GRPC_PORT"
-    echo ""
-    read -p "Do you want to enter them now? (y/n) " -n 1 -r
-    echo
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-        read -p "DASH0_AUTH_TOKEN: " DASH0_AUTH_TOKEN
-        read -p "DASH0_ENDPOINT_OTLP_GRPC_HOSTNAME (e.g., ingress.dash0.com): " DASH0_ENDPOINT_OTLP_GRPC_HOSTNAME
-        read -p "DASH0_ENDPOINT_OTLP_GRPC_PORT (default: 4317): " DASH0_ENDPOINT_OTLP_GRPC_PORT
-        DASH0_ENDPOINT_OTLP_GRPC_PORT=${DASH0_ENDPOINT_OTLP_GRPC_PORT:-4317}
-    else
-        echo -e "${RED}❌ Environment variables required. Exiting.${NC}"
-        exit 1
-    fi
+    echo -e "${YELLOW}  Telemetry will only be exported to local observability stack${NC}"
 fi
 
 # Check if cluster is accessible
@@ -58,25 +52,36 @@ helm repo update
 echo -e "${BLUE}Step 2/4: Creating OpenTelemetry namespace...${NC}"
 kubectl create namespace opentelemetry --dry-run=client -o yaml | kubectl apply -f -
 
-echo -e "${BLUE}Step 3/4: Creating Dash0 secrets...${NC}"
-kubectl create secret generic dash0-secrets \
-    --from-literal=dash0-authorization-token="$DASH0_AUTH_TOKEN" \
-    --from-literal=dash0-grpc-hostname="$DASH0_ENDPOINT_OTLP_GRPC_HOSTNAME" \
-    --from-literal=dash0-grpc-port="${DASH0_ENDPOINT_OTLP_GRPC_PORT:-4317}" \
-    --namespace=opentelemetry \
-    --dry-run=client -o yaml | kubectl apply -f -
+# Create Dash0 secrets only if Dash0 is enabled
+if [ "$DASH0_ENABLED" = true ]; then
+    echo -e "${BLUE}Step 3/4: Creating Dash0 secrets...${NC}"
+    kubectl create secret generic dash0-secrets \
+        --from-literal=dash0-authorization-token="$DASH0_AUTH_TOKEN" \
+        --from-literal=dash0-grpc-hostname="$DASH0_ENDPOINT_OTLP_GRPC_HOSTNAME" \
+        --from-literal=dash0-grpc-port="${DASH0_ENDPOINT_OTLP_GRPC_PORT:-4317}" \
+        --namespace=opentelemetry \
+        --dry-run=client -o yaml | kubectl apply -f -
+
+    COLLECTOR_DAEMONSET_CONFIG="${PROJECT_ROOT}/collector/otel-collector-daemonset.yaml"
+    COLLECTOR_DEPLOYMENT_CONFIG="${PROJECT_ROOT}/collector/otel-collector-deployment.yaml"
+else
+    echo -e "${BLUE}Step 3/4: Skipping Dash0 secrets (not configured)${NC}"
+
+    COLLECTOR_DAEMONSET_CONFIG="${PROJECT_ROOT}/collector/otel-collector-daemonset-local.yaml"
+    COLLECTOR_DEPLOYMENT_CONFIG="${PROJECT_ROOT}/collector/otel-collector-deployment-local.yaml"
+fi
 
 echo -e "${BLUE}Step 4/4: Installing OpenTelemetry Collectors...${NC}"
 echo "  - Installing DaemonSet collector..."
 helm upgrade --install otel-collector-ds open-telemetry/opentelemetry-collector \
     --namespace opentelemetry \
-    -f "${PROJECT_ROOT}/collector/otel-collector-daemonset.yaml" \
+    -f "$COLLECTOR_DAEMONSET_CONFIG" \
     --wait
 
 echo "  - Installing Deployment collector..."
 helm upgrade --install otel-collector open-telemetry/opentelemetry-collector \
     --namespace opentelemetry \
-    -f "${PROJECT_ROOT}/collector/otel-collector-deployment.yaml" \
+    -f "$COLLECTOR_DEPLOYMENT_CONFIG" \
     --wait
 
 echo -e "${GREEN}✅ OpenTelemetry stack installed successfully!${NC}"

@@ -1,6 +1,6 @@
 # kgateway with OpenTelemetry
 
-A kgateway ingress controller demo with full observability using OpenTelemetry and Dash0.
+A kgateway ingress controller demo with full observability using OpenTelemetry and a local observability stack (Jaeger, Prometheus, OpenSearch) and/or Dash0.
 
 ## What it does
 
@@ -17,7 +17,7 @@ A kgateway ingress controller demo with full observability using OpenTelemetry a
 - Kind
 - kubectl
 - Helm 3
-- Dash0 account with API token
+- Optional: Dash0 account with API token (telemetry also exports to local stack)
 
 ## Quick Start
 

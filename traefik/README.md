@@ -1,6 +1,6 @@
 # Traefik Demo with Observability
 
-This demo sets up a complete Traefik ingress controller environment with full observability using OpenTelemetry and Dash0.
+This demo sets up a complete Traefik ingress controller environment with full observability using OpenTelemetry and a local observability stack and/or Dash0.
 
 ## Features
 
@@ -19,7 +19,7 @@ This demo sets up a complete Traefik ingress controller environment with full ob
 - Kind
 - kubectl
 - Helm 3
-- Dash0 account with API token
+- Optional: Dash0 account with API token
 
 ## Quick Start
 

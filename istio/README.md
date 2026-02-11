@@ -1,6 +1,6 @@
 # Istio Service Mesh with OpenTelemetry
 
-An Istio service mesh demo with full observability using OpenTelemetry and Dash0.
+An Istio service mesh demo with full observability using OpenTelemetry and a local observability stack (Jaeger, Prometheus, OpenSearch) and/or Dash0.
 
 ## What it does
 
@@ -17,7 +17,7 @@ An Istio service mesh demo with full observability using OpenTelemetry and Dash0
 - Kind
 - kubectl
 - Helm 3
-- Dash0 account with API token
+- Optional: Dash0 account with API token (telemetry also exports to local stack)
 
 ## Quick Start
 
