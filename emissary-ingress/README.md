@@ -1,6 +1,6 @@
 # Emissary-ingress Demo with OpenTelemetry Observability
 
-This demo demonstrates Emissary-ingress with complete OpenTelemetry observability integration using Dash0.
+This demo demonstrates Emissary-ingress with complete OpenTelemetry observability integration using a local observability stack and/or Dash0.
 
 ## Prerequisites
 
@@ -8,8 +8,8 @@ This demo demonstrates Emissary-ingress with complete OpenTelemetry observabilit
 - Kind
 - kubectl
 - Helm 3
-- Dash0 account with API token
 - bc (for load testing calculations)
+- Optional: Dash0 account with API token
 
 ## Quick Start
 

@@ -1,0 +1,109 @@
+mode: deployment
+replicaCount: 1
+image:
+  repository: otel/opentelemetry-collector-contrib
+
+resources:
+  limits:
+    memory: 512Mi
+  requests:
+    memory: 256Mi
+
+presets:
+  clusterMetrics:
+    enabled: true
+  kubernetesEvents:
+    enabled: true
+  kubernetesAttributes:
+    enabled: true
+
+config:
+  receivers:
+    otlp:
+      protocols:
+        grpc: {}
+        http: {}
+    prometheus:
+      config:
+        scrape_configs:
+          - job_name: opentelemetry-collector
+            scrape_interval: 10s
+            static_configs:
+              - targets:
+                - ${env:MY_POD_IP}:8888
+          - job_name: emissary-ingress
+            scrape_interval: 15s
+            static_configs:
+              - targets:
+                - emissary-admin.emissary.svc.cluster.local:8877
+            metrics_path: /metrics
+
+  processors:
+    memory_limiter:
+      check_interval: 2s
+      limit_percentage: 75
+      spike_limit_percentage: 15
+    batch:
+      timeout: 5s
+      send_batch_size: 512
+
+  exporters:
+    # Jaeger exporter (local traces)
+    otlp/jaeger:
+      endpoint: jaeger-collector.default.svc.cluster.local:4317
+      tls:
+        insecure: true
+
+    # Prometheus exporter (local metrics)
+    otlphttp/prometheus:
+      endpoint: http://prometheus.default.svc.cluster.local:9090/api/v1/otlp
+      tls:
+        insecure: true
+
+    # OpenSearch exporter (local logs)
+    opensearch/log:
+      http:
+        endpoint: https://opensearch-cluster-master.default.svc.cluster.local:9200
+        auth:
+          authenticator: basicauth/opensearch
+        tls:
+          insecure_skip_verify: true
+      logs_index: otel-logs
+
+  extensions:
+    basicauth/opensearch:
+      client_auth:
+        username: admin
+        password: "SecureP@ssw0rd123"
+
+  service:
+    extensions:
+      - basicauth/opensearch
+      - health_check
+    pipelines:
+      logs:
+        receivers:
+          - otlp
+        processors:
+          - memory_limiter
+          - batch
+        exporters:
+          - opensearch/log
+      metrics:
+        receivers:
+          - otlp
+          - prometheus
+          - k8s_cluster
+        processors:
+          - memory_limiter
+          - batch
+        exporters:
+          - otlphttp/prometheus
+      traces:
+        receivers:
+          - otlp
+        processors:
+          - memory_limiter
+          - batch
+        exporters:
+          - otlp/jaeger
