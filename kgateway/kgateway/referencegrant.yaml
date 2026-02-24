@@ -6,7 +6,7 @@ metadata:
 spec:
   from:
   - group: gateway.kgateway.dev
-    kind: HTTPListenerPolicy
+    kind: ListenerPolicy
     namespace: kgateway-system
   to:
   - group: ""

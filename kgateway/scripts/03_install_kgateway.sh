@@ -48,7 +48,7 @@ kubectl apply -f "${PROJECT_ROOT}/kgateway/gateway.yaml"
 
 echo -e "${BLUE}Step 7/7: Configuring telemetry (tracing and access logs)...${NC}"
 kubectl apply -f "${PROJECT_ROOT}/kgateway/referencegrant.yaml"
-kubectl apply -f "${PROJECT_ROOT}/kgateway/httplistenerpolicy.yaml"
+kubectl apply -f "${PROJECT_ROOT}/kgateway/listenerpolicy.yaml"
 
 echo -e "${BLUE}Waiting for gateway to be ready...${NC}"
 kubectl wait --for=condition=Programmed gateway/http -n kgateway-system --timeout=120s || true

@@ -18,7 +18,7 @@ if curl -s -o /dev/null -w "%{http_code}" -H "Host: node.dash0-examples.com" htt
     echo -e "${GREEN}✓${NC}"
 else
     echo -e "${RED}✗${NC}"
-    echo "Please run: kubectl port-forward -n emissary svc/emissary-ingress 8080:80 &"
+    echo "Please run: kubectl port-forward -n emissary svc/emissary 8080:80 &"
     exit 1
 fi
 

@@ -44,10 +44,10 @@ kubectl get svc
 
 echo ""
 echo -e "${YELLOW}🌐 Service Access:${NC}"
-echo "  Main Ingress: kubectl port-forward svc/emissary-ingress -n emissary 8080:80"
-echo "  Admin Interface: kubectl port-forward svc/emissary-ingress-admin -n emissary 8877:8877"
+echo "  Main Ingress: kubectl port-forward -n emissary svc/emissary 8080:80"
+echo "  Admin Interface: kubectl port-forward -n emissary svc/emissary-admin 8877:8877"
 echo ""
 echo -e "${YELLOW}📝 Next steps:${NC}"
-echo "  1. Port-forward the ingress: kubectl port-forward svc/emissary-ingress -n emissary 8080:80"
+echo "  1. Port-forward the ingress: kubectl port-forward -n emissary svc/emissary 8080:80"
 echo "  2. Test the application: curl -H 'Host: node.dash0-examples.com' http://localhost:8080/"
 echo "  3. Run load test: ./scripts/load-test.sh"

@@ -28,13 +28,13 @@ This demo demonstrates Emissary-ingress with complete OpenTelemetry observabilit
 3. **Access services:**
    ```bash
    # Port-forward to access the demo application
-   kubectl port-forward svc/emissary-ingress -n emissary 8080:80 &
+   kubectl port-forward -n emissary svc/emissary 8080:80 &
 
    # Test the application
    curl -H "Host: node.dash0-examples.com" http://localhost:8080/
 
    # Access admin interface
-   kubectl port-forward svc/emissary-ingress-admin -n emissary 8877:8877 &
+   kubectl port-forward -n emissary svc/emissary-admin 8877:8877 &
    # Visit: http://localhost:8877/
    ```
 

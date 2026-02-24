@@ -24,7 +24,7 @@ resources:
 
 # Service configuration
 service:
-  type: LoadBalancer
+  type: ClusterIP
 
 # Enable admin service
 adminService:
