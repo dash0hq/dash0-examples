@@ -1,0 +1,21 @@
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4318
+
+exporters:
+  debug:
+    verbosity: detailed
+
+  # otlp_http/dash0:
+  #   endpoint: https://${env:DASH0_ENDPOINT_OTLP_HTTP_HOSTNAME}
+  #   headers:
+  #     Authorization: Bearer ${env:DASH0_AUTH_TOKEN}
+  #     Dash0-Dataset: ${env:DASH0_DATASET}
+
+service:
+  pipelines:
+    logs:
+      receivers: [otlp]
+      exporters: [debug]

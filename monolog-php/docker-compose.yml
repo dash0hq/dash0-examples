@@ -1,0 +1,23 @@
+services:
+  collector:
+    image: otel/opentelemetry-collector-contrib:0.146.1
+    volumes:
+      - ./otelcol.yaml:/etc/otelcol-contrib/config.yaml
+    ports:
+      - 4318:4318
+    env_file:
+      - ../.env
+
+  app:
+    build:
+      context: .
+    environment:
+      OTEL_PHP_AUTOLOAD_ENABLED: true
+      OTEL_LOGS_EXPORTER: otlp
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://collector:4318
+      OTEL_SERVICE_NAME: php-monolog-demo
+      OTEL_TRACES_EXPORTER: none
+      OTEL_METRICS_EXPORTER: none
+    depends_on:
+      - collector

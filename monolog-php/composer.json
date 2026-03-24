@@ -1,0 +1,12 @@
+{
+	"require": {
+		"php": ">=8.4",
+		"monolog/monolog": "^3.9",
+		"open-telemetry/sdk": "^1.13",
+		"open-telemetry/exporter-otlp": "^1.4",
+		"open-telemetry/opentelemetry-logger-monolog": "^0.0.5",
+		"google/protobuf": "^4.31",
+		"guzzlehttp/guzzle": "^7.9",
+		"guzzlehttp/psr7": "^2.7"
+	}
+}
