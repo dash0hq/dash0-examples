@@ -1,0 +1,66 @@
+services:
+  shortener:
+    build: .
+    command: npm run shortener
+    ports:
+      - ${SHORTENER_PORT}:${SHORTENER_PORT}
+    environment:
+      PORT: ${SHORTENER_PORT}
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      REDIRECTOR_URL: ${REDIRECTOR_URL}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - app
+
+  redirector:
+    build: .
+    command: npm run redirector
+    environment:
+      PORT: ${REDIRECTOR_PORT}
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - app
+
+  db:
+    image: postgres:18.3-trixie
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U postgres]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+    networks:
+      - app
+
+  redis:
+    image: redis:8.6.2-trixie
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+    networks:
+      - app
+
+volumes:
+  pgdata:
+
+networks:
+  app:

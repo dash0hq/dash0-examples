@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>URL Shortener</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bulma@1.0.4/css/bulma.min.css"
+    />
+    <style>
+      body {
+        background: #f5f5f5;
+        min-height: 100vh;
+      }
+
+      .hero {
+        background: linear-gradient(135deg, #3273dc 0%, #209cee 100%);
+      }
+
+      #result-box {
+        display: none;
+      }
+
+      .short-url-display {
+        font-family: monospace;
+        font-size: 1.1rem;
+        word-break: break-all;
+      }
+
+      .url-table td {
+        vertical-align: middle;
+      }
+
+      .url-table .original-url {
+        max-width: 320px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .url-table .code-cell {
+        font-family: monospace;
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- Navbar -->
+    <nav class="navbar is-link" role="navigation" aria-label="main navigation">
+      <div class="navbar-brand">
+        <a class="navbar-item has-text-weight-bold is-size-5" href="/">
+          ✂️ Snip
+        </a>
+      </div>
+    </nav>
+
+    <!-- Hero / form -->
+    <section class="hero is-medium is-link">
+      <div class="hero-body">
+        <div class="container">
+          <h1 class="title has-text-white">Shorten a URL</h1>
+          <p class="subtitle has-text-link-light">
+            Paste any link below to get a short, shareable URL.
+          </p>
+
+          <div class="box">
+            <form id="shorten-form">
+              <div class="field has-addons">
+                <div class="control is-expanded">
+                  <input
+                    id="url-input"
+                    class="input is-medium"
+                    type="url"
+                    placeholder="https://example.com/some/very/long/url"
+                    required
+                    autocomplete="off"
+                  />
+                </div>
+                <div class="control">
+                  <button
+                    id="shorten-btn"
+                    type="submit"
+                    class="button is-link is-medium"
+                  >
+                    Shorten
+                  </button>
+                </div>
+              </div>
+              <p id="form-error" class="help is-danger" style="display:none"></p>
+            </form>
+
+            <!-- Result -->
+            <div id="result-box" class="mt-4">
+              <div class="notification is-success is-light">
+                <p class="heading mb-1">Your short URL</p>
+                <div class="field has-addons">
+                  <div class="control is-expanded">
+                    <input
+                      id="short-url-value"
+                      class="input short-url-display"
+                      type="text"
+                      readonly
+                    />
+                  </div>
+                  <div class="control">
+                    <button id="copy-btn" class="button is-success">
+                      Copy
+                    </button>
+                  </div>
+                </div>
+                <p id="result-meta" class="help mt-1"></p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Recent URLs -->
+    <section class="section">
+      <div class="container">
+        <div class="level mb-4">
+          <div class="level-left">
+            <h2 class="title is-4 mb-0">Recent URLs</h2>
+          </div>
+          <div class="level-right">
+            <button id="refresh-btn" class="button is-light is-small">
+              ↺ Refresh
+            </button>
+          </div>
+        </div>
+
+        <div id="urls-loading" class="has-text-centered py-6">
+          <span class="icon is-large has-text-grey-light">
+            <i>Loading…</i>
+          </span>
+        </div>
+
+        <div id="urls-empty" class="has-text-centered py-6" style="display:none">
+          <p class="has-text-grey">No URLs shortened yet. Try one above!</p>
+        </div>
+
+        <div class="table-container" id="urls-table-wrap" style="display:none">
+          <table class="table is-fullwidth is-hoverable url-table">
+            <thead>
+              <tr>
+                <th>Short code</th>
+                <th>Original URL</th>
+                <th>Title</th>
+                <th>Created</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="urls-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <script>
+      const shortenForm = document.getElementById("shorten-form");
+      const urlInput = document.getElementById("url-input");
+      const shortenBtn = document.getElementById("shorten-btn");
+      const formError = document.getElementById("form-error");
+      const resultBox = document.getElementById("result-box");
+      const shortUrlValue = document.getElementById("short-url-value");
+      const copyBtn = document.getElementById("copy-btn");
+      const resultMeta = document.getElementById("result-meta");
+      const refreshBtn = document.getElementById("refresh-btn");
+      const urlsLoading = document.getElementById("urls-loading");
+      const urlsEmpty = document.getElementById("urls-empty");
+      const urlsTableWrap = document.getElementById("urls-table-wrap");
+      const urlsTbody = document.getElementById("urls-tbody");
+
+      // ── Shorten form ────────────────────────────────────────────────────────
+
+      shortenForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        formError.style.display = "none";
+        resultBox.style.display = "none";
+
+        const url = urlInput.value.trim();
+        shortenBtn.classList.add("is-loading");
+        shortenBtn.disabled = true;
+
+        try {
+          const res = await fetch("/api/shorten", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ url }),
+          });
+
+          const data = await res.json();
+
+          if (!res.ok) {
+            showFormError(data.error || "Something went wrong.");
+            return;
+          }
+
+          shortUrlValue.value = data.short_url;
+          resultMeta.textContent = data.title
+            ? `"${data.title}"`
+            : data.original_url;
+          resultBox.style.display = "block";
+          urlInput.value = "";
+
+          loadRecentUrls();
+        } catch {
+          showFormError("Could not reach the server. Please try again.");
+        } finally {
+          shortenBtn.classList.remove("is-loading");
+          shortenBtn.disabled = false;
+        }
+      });
+
+      function showFormError(msg) {
+        formError.textContent = msg;
+        formError.style.display = "block";
+      }
+
+      // ── Copy button ──────────────────────────────────────────────────────────
+
+      copyBtn.addEventListener("click", () => {
+        navigator.clipboard.writeText(shortUrlValue.value).then(() => {
+          copyBtn.textContent = "Copied!";
+          setTimeout(() => (copyBtn.textContent = "Copy"), 2000);
+        });
+      });
+
+      // ── Recent URLs table ────────────────────────────────────────────────────
+
+      async function loadRecentUrls() {
+        urlsLoading.style.display = "block";
+        urlsEmpty.style.display = "none";
+        urlsTableWrap.style.display = "none";
+
+        try {
+          const res = await fetch("/api/urls");
+          const rows = await res.json();
+
+          if (!rows.length) {
+            urlsEmpty.style.display = "block";
+            return;
+          }
+
+          urlsTbody.innerHTML = rows.map((r) => `
+            <tr>
+              <td class="code-cell">
+                <a href="/${r.short_code}" target="_blank" rel="noopener">
+                  ${escHtml(r.short_code)}
+                </a>
+              </td>
+              <td class="original-url" title="${escHtml(r.original_url)}">
+                <a href="${escHtml(r.original_url)}" target="_blank" rel="noopener">
+                  ${escHtml(r.original_url)}
+                </a>
+              </td>
+              <td>${escHtml(r.title || "—")}</td>
+              <td>${formatDate(r.created_at)}</td>
+              <td>
+                <button
+                  class="button is-small is-light copy-row-btn"
+                  data-url="${escHtml(location.origin + "/" + r.short_code)}"
+                >
+                  Copy
+                </button>
+              </td>
+            </tr>
+          `).join("");
+
+          urlsTableWrap.style.display = "block";
+          attachRowCopyHandlers();
+        } catch {
+          urlsEmpty.style.display = "block";
+        } finally {
+          urlsLoading.style.display = "none";
+        }
+      }
+
+      function attachRowCopyHandlers() {
+        urlsTableWrap.querySelectorAll(".copy-row-btn").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            navigator.clipboard.writeText(btn.dataset.url).then(() => {
+              btn.textContent = "Copied!";
+              setTimeout(() => (btn.textContent = "Copy"), 2000);
+            });
+          });
+        });
+      }
+
+      function escHtml(str) {
+        return String(str)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      function formatDate(iso) {
+        const d = new Date(iso);
+        return d.toLocaleDateString(undefined, {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        });
+      }
+
+      refreshBtn.addEventListener("click", loadRecentUrls);
+
+      // Initial load
+      loadRecentUrls();
+    </script>
+  </body>
+</html>
