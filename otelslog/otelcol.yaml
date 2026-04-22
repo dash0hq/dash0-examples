@@ -1,0 +1,23 @@
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4318
+
+exporters:
+  otlp_http/dash0:
+    endpoint: https://ingress.eu-west-1.aws.dash0.com
+    headers:
+      Authorization: Bearer <bearer_token>
+      Dash0-Dataset: <dash0-dataset>
+  debug:
+    verbosity: detailed
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      exporters: [debug, otlp_http/dash0]
+    logs:
+      receivers: [otlp]
+      exporters: [debug, otlp_http/dash0]

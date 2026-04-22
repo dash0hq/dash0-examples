@@ -1,0 +1,9 @@
+services:
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.150.1
+    container_name: otelcollector
+    volumes:
+      - ./otelcol.yaml:/etc/otelcol-contrib/config.yaml
+    restart: unless-stopped
+    ports:
+      - 4318:4318
