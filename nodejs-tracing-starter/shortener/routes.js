@@ -1,4 +1,3 @@
-import { trace } from "@opentelemetry/api";
 import { Router } from "express";
 import { nanoid } from "nanoid";
 import db from "../lib/db.js";
@@ -84,12 +83,6 @@ router.get("/:code", async (req, res) => {
 
 		if (!response.ok) {
 			return res.status(response.status).json(body);
-		}
-
-		const span = trace.getActiveSpan();
-		if (span) {
-			span.setAttribute("shortener.short_code", code);
-			span.setAttribute("shortener.original_url", body.original_url);
 		}
 
 		res.redirect(302, body.original_url);
