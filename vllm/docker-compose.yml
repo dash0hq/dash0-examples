@@ -1,0 +1,82 @@
+services:
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.126.0
+    container_name: vllm-otel-collector
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./otel-collector-config.yml:/etc/otelcol/config.yaml
+    ports:
+      - "4317:4317"   # OTLP gRPC receiver
+      - "4318:4318"   # OTLP HTTP receiver
+      - "13133:13133" # health check
+    env_file:
+      - ../.env
+    networks:
+      - vllm-demo
+
+  vllm:
+    build: ./vllm-server
+    container_name: vllm-server
+    command:
+      - "--model"
+      - "facebook/opt-125m"
+      - "--port"
+      - "8000"
+      - "--otlp-traces-endpoint"
+      - "http://otel-collector:4317"
+    environment:
+      OTEL_SERVICE_NAME: vllm-server
+      OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://otel-collector:4317
+      OTEL_EXPORTER_OTLP_TRACES_INSECURE: "true"
+    ports:
+      - "8000:8000"
+    volumes:
+      - huggingface-cache:/root/.cache/huggingface
+    shm_size: "1gb"
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 300s  # model loading takes 2-5 min on first run
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    depends_on:
+      - otel-collector
+    networks:
+      - vllm-demo
+
+  rag-app:
+    build: ./rag-app
+    container_name: vllm-rag-app
+    environment:
+      OTEL_SERVICE_NAME: rag-app
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      VLLM_BASE_URL: http://vllm:8000
+    ports:
+      - "8001:8001"
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    depends_on:
+      otel-collector:
+        condition: service_started
+      vllm:
+        condition: service_healthy
+    networks:
+      - vllm-demo
+
+volumes:
+  huggingface-cache:
+
+networks:
+  vllm-demo:
+    driver: bridge
