@@ -66,6 +66,17 @@ A demonstration of lightweight OpenTelemetry-based observability for LLM applica
 
 **Technologies**: OpenLLMetry, Traceloop SDK, Anthropic Claude, Python, OpenTelemetry, Docker
 
+### [vLLM with OpenTelemetry](./vllm/)
+End-to-end observability for a self-hosted vLLM inference server using vLLM's built-in OTel support. This demo demonstrates:
+- Distributed traces spanning a FastAPI RAG app and the vLLM inference server via W3C trace context propagation
+- GenAI semantic convention attributes (`gen_ai.provider.name`, token counts, finish reasons) on inference spans
+- vLLM's native OTLP trace export via `--otlp-traces-endpoint` (no code changes to the server)
+- Prometheus metrics from vLLM (`vllm:*` family) scraped by the OTel Collector and forwarded to Dash0
+- Custom RAG app metrics (`rag_queries_total`, `rag_query_duration_seconds`) via `prometheus-client`
+- OTel Collector as a unified pipeline for both OTLP traces and Prometheus metrics
+
+**Technologies**: vLLM, OpenTelemetry, Python, FastAPI, Docker Compose
+
 ### [Traefik Ingress with Observability](./traefik/)
 A complete Traefik ingress controller demo with full observability using OpenTelemetry and Dash0. This demo showcases:
 - Multi-node Kind cluster with Traefik v3.5 as ingress controller
