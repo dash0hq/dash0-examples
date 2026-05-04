@@ -57,6 +57,8 @@ services:
     environment:
       OTEL_SERVICE_NAME: rag-app
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      OTEL_EXPORTER_OTLP_INSECURE: "true"
+      OTEL_EXPORTER_OTLP_PROTOCOL: grpc
       VLLM_BASE_URL: http://vllm:8000
     ports:
       - "8001:8001"

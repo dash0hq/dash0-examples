@@ -3,20 +3,12 @@ import os
 import httpx
 from fastapi import FastAPI, HTTPException
 from opentelemetry import trace
-from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.propagate import inject
-from opentelemetry.sdk.resources import Resource
-from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from prometheus_client import Counter, Histogram, make_asgi_app
 from pydantic import BaseModel
 
-# --- OTel setup ---
-# Endpoint and service name are read from OTEL_EXPORTER_OTLP_ENDPOINT and OTEL_SERVICE_NAME env vars
-provider = TracerProvider(resource=Resource.create())
-provider.add_span_processor(BatchSpanProcessor(OTLPSpanExporter()))
-trace.set_tracer_provider(provider)
+# OTel auto-configures from OTEL_SERVICE_NAME and OTEL_EXPORTER_OTLP_ENDPOINT env vars
 tracer = trace.get_tracer("rag-app")
 
 # --- Prometheus metrics ---
@@ -60,7 +52,6 @@ async def query_endpoint(body: QueryRequest):
         with tracer.start_as_current_span(
             "rag.query",
             attributes={
-                "gen_ai.provider.name": "vllm",
                 "gen_ai.request.model": MODEL,
             },
         ) as span:
@@ -96,11 +87,10 @@ async def query_endpoint(body: QueryRequest):
 
                 choice = result["choices"][0]
                 answer = choice["text"].strip()
-                gen_span.set_attribute("gen_ai.response.finish_reasons", [choice.get("finish_reason", "")])
 
                 if "usage" in result:
-                    span.set_attribute("gen_ai.usage.input_tokens", result["usage"].get("prompt_tokens", 0))
-                    span.set_attribute("gen_ai.usage.output_tokens", result["usage"].get("completion_tokens", 0))
+                    span.set_attribute("gen_ai.usage.prompt_tokens", result["usage"].get("prompt_tokens", 0))
+                    span.set_attribute("gen_ai.usage.completion_tokens", result["usage"].get("completion_tokens", 0))
 
     return {"query": body.query, "context": context, "answer": answer}
 

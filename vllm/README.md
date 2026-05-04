@@ -5,7 +5,7 @@ Observe a vLLM inference server end-to-end using OpenTelemetry — distributed t
 ## What this demonstrates
 
 - Distributed traces spanning a FastAPI RAG app and the vLLM inference server, connected via W3C trace context propagation
-- GenAI semantic convention attributes (`gen_ai.provider.name`, `gen_ai.request.model`, token usage) on LLM spans
+- GenAI semantic convention attributes (`gen_ai.request.model`, `gen_ai.usage.prompt_tokens`, `gen_ai.usage.completion_tokens`) on LLM spans
 - vLLM's native OTLP trace export via `--otlp-traces-endpoint` (no code changes to the server)
 - Prometheus metrics from vLLM (`vllm:*` metrics family) scraped by the OTel Collector and forwarded to Dash0
 - Custom RAG app metrics (`rag_queries_total`, `rag_query_duration_seconds`) via `prometheus-client`
@@ -79,8 +79,7 @@ Each query to the RAG app produces a distributed trace with spans across two ser
 - `rag.generate` — outbound call to vLLM; injects W3C `traceparent` header
 
 **vllm-server**
-- `POST /v1/completions` — vLLM request span, linked via the propagated `traceparent` header
-- `llm_request` — inference span with `gen_ai.*` attributes (model, token counts, finish reason)
+- `llm_request` — inference span linked via the propagated `traceparent` header, with `gen_ai.*` attributes (model, token counts)
 
 The metrics pipeline collects vLLM's built-in Prometheus metrics (request throughput, token counts, cache utilisation) alongside the RAG app's custom counters.
 
