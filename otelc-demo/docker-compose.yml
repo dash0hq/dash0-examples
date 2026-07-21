@@ -1,0 +1,14 @@
+services:
+  collector:
+    image: otel/opentelemetry-collector-contrib:0.156.0
+    command: [--config=/etc/otelcol/config.yaml]
+    volumes:
+      - ./otelcol.yaml:/etc/otelcol/config.yaml:ro
+    ports:
+      - 4317:4317
+      - 4318:4318
+
+  otel-desktop-viewer:
+    image: ghcr.io/ctrlspice/otel-desktop-viewer:latest
+    ports:
+      - 8000:8000
