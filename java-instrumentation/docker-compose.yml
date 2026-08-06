@@ -97,6 +97,8 @@ services:
         condition: service_healthy
       validation-service:
         condition: service_started
+      otel-collector:
+        condition: service_started  
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/todo

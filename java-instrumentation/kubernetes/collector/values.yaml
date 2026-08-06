@@ -16,7 +16,7 @@ extraEnvs:
     value: admin
   - name: OPENSEARCH_PASSWORD
     value: SecureP@ssw0rd123
-  - name: DASH0_AUTHORIZATION_TOKEN
+  - name: DASH0_AUTH_TOKEN
     valueFrom:
       secretKeyRef:
         name: dash0-secrets
@@ -85,7 +85,7 @@ config:
 
     bearertokenauth/dash0:
       scheme: Bearer
-      token: ${env:DASH0_AUTHORIZATION_TOKEN}
+      token: ${env:DASH0_AUTH_TOKEN}
 
   service:
     extensions:
