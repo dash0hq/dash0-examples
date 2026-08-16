@@ -1,0 +1,28 @@
+subscriptions: []
+dispatchers:
+    - id: 1
+      name: Testing Webhook
+      type: webhook
+      url: https://webhook.site/e2c5a2eb-6b63-4891-b5b0-ab46a0d8e82d
+      template: |-
+        {
+          "text": "{{ .Container.Name }}",
+          "blocks": [
+            {
+              "type": "section",
+              "text": {
+                "type": "mrkdwn",
+                "text": "*{{ .Container.Name }}*\n{{ .Detail }}"
+              }
+            },
+            {
+              "type": "context",
+              "elements": [
+                {
+                  "type": "mrkdwn",
+                  "text": "Host: {{ .Container.HostName }} | Image: {{ .Container.Image }}"
+                }
+              ]
+            }
+          ]
+        }

@@ -1,0 +1,72 @@
+services:
+  otelcol:
+    image: otel/opentelemetry-collector-contrib:0.158.0
+    container_name: otelcol
+    volumes:
+      - ./otelcol.yaml:/etc/otelcol-contrib/config.yaml
+    restart: unless-stopped
+    ports:
+      - 4317:4317
+
+  prometheus:
+    image: prom/prometheus:v3.13.2
+    container_name: prometheus
+    restart: unless-stopped
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=15d
+      - --web.enable-lifecycle
+      - --enable-feature=otlp-deltatocumulative
+      # Enable Prometheus to accept OTLP writes directly
+      - --web.enable-otlp-receiver
+    ports:
+      - 9090:9090
+
+  victoria-logs:
+    image: victoriametrics/victoria-logs:v1.52.0
+    container_name: victoria-logs
+    restart: unless-stopped
+    ports:
+      - 9428:9428
+    volumes:
+      - victoria_logs_data:/victoria-logs-data
+    command:
+      - --storageDataPath=/victoria-logs-data
+      - --httpListenAddr=:9428
+
+  jaeger:
+    image: jaegertracing/jaeger:2.20.0
+    container_name: jaeger
+    restart: unless-stopped
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    ports:
+      - 16686:16686
+
+  grafana:
+    image: grafana/grafana-oss:13.0.2
+    container_name: grafana
+    ports:
+      - 3000:3000
+    environment:
+      GF_SECURITY_DISABLE_INITIAL_ADMIN_CREATION: true
+      GF_AUTH_ANONYMOUS_ENABLED: true
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+      GF_AUTH_DISABLE_SIGNOUT_MENU: true
+      GF_AUTH_DISABLE_LOGIN_FORM: true
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    depends_on:
+      - prometheus
+      - victoria-logs
+      - jaeger
+
+volumes:
+  prometheus_data:
+  grafana_data:
+  victoria_logs_data:

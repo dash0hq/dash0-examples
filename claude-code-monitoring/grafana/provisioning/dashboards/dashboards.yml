@@ -1,0 +1,9 @@
+# grafana/provisioning/dashboards/dashboards.yml
+apiVersion: 1
+
+providers:
+  - name: claude-code
+    folder: AI Agents
+    type: file
+    options:
+      path: /etc/grafana/provisioning/dashboards/json
