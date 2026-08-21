@@ -1,0 +1,920 @@
+kind: "Dashboard"
+metadata:
+  name: "claude-code-metrics"
+  project: "ai-agents"
+spec:
+  display:
+    name: "Claude Code Metrics (Prometheus)"
+    description: >-
+      Claude Code usage analytics on Prometheus: cost, token consumption,
+      sessions, active coding time, lines of code, commits, pull requests,
+      tool decisions, cache hit ratio, and leaderboards by user, model, and
+      session. Consumes Anthropic's OpenTelemetry metrics via OTLP.
+  duration: "7d"
+  refreshInterval: "30s"
+  variables:
+    - kind: "ListVariable"
+      spec:
+        name: "organization"
+        display:
+          name: "Organization"
+        allowMultiple: true
+        allowAllValue: true
+        defaultValue: "$__all"
+        customAllValue: ".*"
+        plugin:
+          kind: "PrometheusLabelValuesVariable"
+          spec:
+            labelName: "organization_id"
+            matchers:
+              - "claude_code_session_count_total"
+            datasource:
+              kind: "PrometheusDatasource"
+              name: "prometheus"
+    - kind: "ListVariable"
+      spec:
+        name: "user"
+        display:
+          name: "User"
+        allowMultiple: true
+        allowAllValue: true
+        defaultValue: "$__all"
+        customAllValue: ".*"
+        plugin:
+          kind: "PrometheusLabelValuesVariable"
+          spec:
+            labelName: "user_email"
+            matchers:
+              - 'claude_code_session_count_total{organization_id=~"$organization"}'
+            datasource:
+              kind: "PrometheusDatasource"
+              name: "prometheus"
+    - kind: "ListVariable"
+      spec:
+        name: "model"
+        display:
+          name: "Model"
+        allowMultiple: true
+        allowAllValue: true
+        defaultValue: "$__all"
+        customAllValue: ".*"
+        plugin:
+          kind: "PrometheusLabelValuesVariable"
+          spec:
+            labelName: "model"
+            matchers:
+              - 'claude_code_token_usage_tokens_total{organization_id=~"$organization"}'
+            datasource:
+              kind: "PrometheusDatasource"
+              name: "prometheus"
+
+  panels:
+    sessions:
+      kind: "Panel"
+      spec:
+        display:
+          name: "Sessions"
+          description: "Total number of Claude Code sessions started in the selected time range"
+        plugin:
+          kind: "StatChart"
+          spec:
+            calculation: "last"
+            format:
+              unit: "decimal"
+              decimalPlaces: 0
+            thresholds:
+              steps:
+                - value: 0
+                  color: "blue"
+        queries:
+          - kind: "TimeSeriesQuery"
+            spec:
+              plugin:
+                kind: "PrometheusTimeSeriesQuery"
+                spec:
+                  query: 'count(count by (session_id) (max_over_time(claude_code_session_count_total{organization_id=~"$organization", user_email=~"$user", model=~"$model"}[$__range]))) or vector(0)'
+                  seriesNameFormat: "Sessions"
+
+    users:
+      kind: "Panel"
+      spec:
+        display:
+          name: "Users"
+          description: "Number of unique users who used Claude Code in the selected time range"
+        plugin:
+          kind: "StatChart"
+          spec:
+            calculation: "last"
+            format:
+              unit: "decimal"
+              decimalPlaces: 0
+            thresholds:
+              steps:
+                - value: 0
+                  color: "blue"
+        queries:
+          - kind: "TimeSeriesQuery"
+            spec:
+              plugin:
+                kind: "PrometheusTimeSeriesQuery"
+                spec:
+                  query: 'count(count by (user_email) (max_over_time(claude_code_session_count_total{organization_id=~"$organization", user_email=~"$user"}[$__range]))) or vector(0)'
+                  seriesNameFormat: "Users"
+
+    totalCost:
+      kind: "Panel"
+      spec:
+        display:
+          name: "Total Cost"
+          description: "Total estimated cost in USD based on token usage and model pricing"
+        plugin:
+          kind: "StatChart"
+          spec:
+            calculation: "last"
+            format:
+              unit: "usd"
+              decimalPlaces: 2
+            thresholds:
+              steps:
+                - value: 0
+                  color: "green"
+                - value: 100
+                  color: "yellow"
+                - value: 500
+                  color: "red"
+        queries:
+          - kind: "TimeSeriesQuery"
+            spec:
+              plugin:
+                kind: "PrometheusTimeSeriesQuery"
+                spec:
+                  query: 'sum(increase(claude_code_cost_usage_USD_total{organization_id=~"$organization", user_email=~"$user", model=~"$model"}[$__range]))'
+                  seriesNameFormat: "Cost"
+
+    totalTokens:
+      kind: "Panel"
+      spec:
+        display:
+          name: "Total Tokens"
+          description: "Total tokens consumed including input, output, cache read, and cache creation tokens"
+        plugin:
+          kind: "StatChart"
+          spec:
+            calculation: "last"
+            format:
+              unit: "decimal"
+              decimalPlaces: 0
+              shortValues: true
+            thresholds:
+              steps:
+                - value: 0
+                  color: "purple"
+        queries:
+          - kind: "TimeSeriesQuery"
+            spec:
+              plugin:
+                kind: "PrometheusTimeSeriesQuery"
+                spec:
+                  query: 'sum(increase(claude_code_token_usage_tokens_total{organization_id=~"$organization", user_email=~"$user", model=~"$model"}[$__range]))'
+                  seriesNameFormat: "Tokens"
+
+    commits:
+      kind: "Panel"
+      spec:
+        display:
+          name: "Commits"
+          description: "Total git commits created using Claude Code"
+        plugin:
+          kind: "StatChart"
+          spec:
+            calculation: "last"
+            format:
+              unit: "decimal"
+              decimalPlaces: 0
+            thresholds:
+              steps:
+                - value: 0
+                  color: "orange"
+        queries:
+          - kind: "TimeSeriesQuery"
+            spec:
+              plugin:
+                kind: "PrometheusTimeSeriesQuery"
+                spec:
+                  query: 'sum(increase(claude_code_commit_count_total{organization_id=~"$organization", user_email=~"$user"}[$__range])) or vector(0)'
+                  seriesNameFormat: "Commits"
+
+    pullRequests:
+      kind: "Panel"
+      spec:
+        display:
+          name: "Pull Requests"
+          description: "Total pull requests created using Claude Code"
+        plugin:
+          kind: "StatChart"
+          spec:
+            calculation: "last"
+            format:
+              unit: "decimal"
+              decimalPlaces: 0
+            thresholds:
+              steps:
+                - value: 0
+                  color: "purple"
+        queries:
+          - kind: "TimeSeriesQuery"
+            spec:
+              plugin:
+                kind: "PrometheusTimeSeriesQuery"
+                spec:
+                  query: 'sum(increase(claude_code_pull_request_count_total{organization_id=~"$organization", user_email=~"$user"}[$__range])) or vector(0)'
+                  seriesNameFormat: "PRs"
+
+    linesAdded:
+      kind: "Panel"
+      spec:
+        display:
+          name: "Lines Added"
+          description: "Total lines of code added by Claude Code"
+        plugin:
+          kind: "StatChart"
+          spec:
+            calculation: "last"
+            format:
+              unit: "decimal"
+              decimalPlaces: 0
+            thresholds:
+              steps:
+                - value: 0
+                  color: "green"
+        queries:
+          - kind: "TimeSeriesQuery"
+            spec:
+              plugin:
+                kind: "PrometheusTimeSeriesQuery"
+                spec:
+                  query: 'sum(increase(claude_code_lines_of_code_count_total{organization_id=~"$organization", user_email=~"$user", type="added"}[$__range])) or vector(0)'
+                  seriesNameFormat: "Added"
+
+    linesRemoved:
+      kind: "Panel"
+      spec:
+        display:
+          name: "Lines Removed"
+          description: "Total lines of code removed by Claude Code"
+        plugin:
+          kind: "StatChart"
+          spec:
+            calculation: "last"
+            format:
+              unit: "decimal"
+              decimalPlaces: 0
+            thresholds:
+              steps:
+                - value: 0
+                  color: "red"
+        queries:
+          - kind: "TimeSeriesQuery"
+            spec:
+              plugin:
+                kind: "PrometheusTimeSeriesQuery"
+                spec:
+                  query: 'sum(increase(claude_code_lines_of_code_count_total{organization_id=~"$organization", user_email=~"$user", type="removed"}[$__range])) or vector(0)'
+                  seriesNameFormat: "Removed"
+
+    activeTime:
+      kind: "Panel"
+      spec:
+        display:
+          name: "Active Time"
+          description: "Time breakdown: 'cli' = time Claude Code is processing, 'user' = time waiting for user input"
+        plugin:
+          kind: "StatChart"
+          spec:
+            calculation: "last"
+            format:
+              unit: "seconds"
+              decimalPlaces: 0
+            thresholds:
+              steps:
+                - value: 0
+                  color: "green"
+        queries:
+          - kind: "TimeSeriesQuery"
+            spec:
+              plugin:
+                kind: "PrometheusTimeSeriesQuery"
+                spec:
+                  query: 'sum(increase(claude_code_active_time_seconds_total{organization_id=~"$organization", user_email=~"$user"}[$__range])) by (type)'
+                  seriesNameFormat: "{{type}}"
+
+    tokensByType:
+      kind: "Panel"
+      spec:
+        display:
+          name: "Tokens by Type"
+          description: "Token usage by type: input (prompt), output (response), cacheRead (from cache), cacheCreation (added to cache)"
+        plugin:
+          kind: "StatChart"
+          spec:
+            calculation: "last"
+            format:
+              unit: "decimal"
+              decimalPlaces: 0
+              shortValues: true
+            thresholds:
+              steps:
+                - value: 0
+                  color: "blue"
+        queries:
+          - kind: "TimeSeriesQuery"
+            spec:
+              plugin:
+                kind: "PrometheusTimeSeriesQuery"
+                spec:
+                  query: 'sum(increase(claude_code_token_usage_tokens_total{organization_id=~"$organization", user_email=~"$user", model=~"$model"}[$__range])) by (type)'
+                  seriesNameFormat: "{{type}}"
+
+    toolDecisions:
+      kind: "Panel"
+      spec:
+        display:
+          name: "Tool Decisions"
+          description: "Tool edit decisions: 'accept' = user accepted the edit, 'reject' = user rejected the edit"
+        plugin:
+          kind: "StatChart"
+          spec:
+            calculation: "last"
+            format:
+              unit: "decimal"
+              decimalPlaces: 0
+            thresholds:
+              steps:
+                - value: 0
+                  color: "green"
+        queries:
+          - kind: "TimeSeriesQuery"
+            spec:
+              plugin:
+                kind: "PrometheusTimeSeriesQuery"
+                spec:
+                  query: 'sum(increase(claude_code_code_edit_tool_decision_total{organization_id=~"$organization", user_email=~"$user"}[$__range])) by (decision)'
+                  seriesNameFormat: "{{decision}}"
+
+    cacheHitRatio:
+      kind: "Panel"
+      spec:
+        display:
+          name: "Cache hit ratio"
+          description: >-
+            Fraction of input tokens served from prompt cache (cacheRead vs
+            cacheRead+cacheCreation+input). Higher = better cache reuse = lower
+            cost. Below ~40% means caching is not really helping.
+        plugin:
+          kind: "GaugeChart"
+          spec:
+            calculation: "last"
+            max: 1
+            format:
+              unit: "percent-decimal"
+              decimalPlaces: 0
+            thresholds:
+              steps:
+                - value: 0
+                  color: "red"
+                - value: 0.4
+                  color: "orange"
+                - value: 0.6
+                  color: "yellow"
+                - value: 0.75
+                  color: "green"
+        queries:
+          - kind: "TimeSeriesQuery"
+            spec:
+              plugin:
+                kind: "PrometheusTimeSeriesQuery"
+                spec:
+                  query: 'sum(rate(claude_code_token_usage_tokens_total{organization_id=~"$organization", user_email=~"$user", model=~"$model", type="cacheRead"}[$__rate_interval])) / sum(rate(claude_code_token_usage_tokens_total{organization_id=~"$organization", user_email=~"$user", model=~"$model", type=~"cacheRead|cacheCreation|input"}[$__rate_interval]))'
+
+    topUsersByCost:
+      kind: "Panel"
+      spec:
+        display:
+          name: "Top Users by Cost"
+          description: "Top 10 users ranked by total cost in the selected time range"
+        plugin:
+          kind: "BarChart"
+          spec:
+            calculation: "last"
+            orientation: "horizontal"
+            sort: "desc"
+            format:
+              unit: "usd"
+              decimalPlaces: 2
+        queries:
+          - kind: "TimeSeriesQuery"
+            spec:
+              plugin:
+                kind: "PrometheusTimeSeriesQuery"
+                spec:
+                  query: 'topk(10, sum(increase(claude_code_cost_usage_USD_total{organization_id=~"$organization", user_email=~"$user", model=~"$model"}[$__range])) by (user_email))'
+                  seriesNameFormat: "{{user_email}}"
+
+    topUsersByTokens:
+      kind: "Panel"
+      spec:
+        display:
+          name: "Top Users by Tokens"
+          description: "Top 10 users ranked by total token consumption"
+        plugin:
+          kind: "BarChart"
+          spec:
+            calculation: "last"
+            orientation: "horizontal"
+            sort: "desc"
+            format:
+              unit: "decimal"
+              decimalPlaces: 0
+              shortValues: true
+        queries:
+          - kind: "TimeSeriesQuery"
+            spec:
+              plugin:
+                kind: "PrometheusTimeSeriesQuery"
+                spec:
+                  query: 'topk(10, sum(increase(claude_code_token_usage_tokens_total{organization_id=~"$organization", user_email=~"$user", model=~"$model"}[$__range])) by (user_email))'
+                  seriesNameFormat: "{{user_email}}"
+
+    topSessionsByCost:
+      kind: "Panel"
+      spec:
+        display:
+          name: "Top Sessions by Cost"
+          description: >-
+            Top 10 most expensive sessions in the selected window. Useful for
+            spotting runaway sessions. Once OTEL_RESOURCE_ATTRIBUTES=git.repo=…
+            is set on the shell that launches Claude, this panel can be
+            repointed to group by `git_repo`.
+        plugin:
+          kind: "BarChart"
+          spec:
+            calculation: "last"
+            orientation: "horizontal"
+            sort: "desc"
+            format:
+              unit: "usd"
+              decimalPlaces: 2
+        queries:
+          - kind: "TimeSeriesQuery"
+            spec:
+              plugin:
+                kind: "PrometheusTimeSeriesQuery"
+                spec:
+                  query: 'topk(10, sum(increase(claude_code_cost_usage_USD_total{organization_id=~"$organization", user_email=~"$user", model=~"$model"}[$__range])) by (session_id))'
+                  seriesNameFormat: "{{session_id}}"
+
+    costByModelPie:
+      kind: "Panel"
+      spec:
+        display:
+          name: "Cost by Model"
+          description: "Cost distribution across different Claude models"
+        plugin:
+          kind: "PieChart"
+          spec:
+            calculation: "last"
+            sort: "desc"
+            mode: "value"
+            radius: 0.5
+            format:
+              unit: "usd"
+              decimalPlaces: 2
+        queries:
+          - kind: "TimeSeriesQuery"
+            spec:
+              plugin:
+                kind: "PrometheusTimeSeriesQuery"
+                spec:
+                  query: 'sum(increase(claude_code_cost_usage_USD_total{organization_id=~"$organization", user_email=~"$user", model=~"$model"}[$__range])) by (model)'
+                  seriesNameFormat: "{{model}}"
+
+    editDecisionsByLanguage:
+      kind: "Panel"
+      spec:
+        display:
+          name: "Edit Decisions by Language"
+          description: "Distribution of tool usage across programming languages"
+        plugin:
+          kind: "PieChart"
+          spec:
+            calculation: "last"
+            sort: "desc"
+            mode: "value"
+            radius: 0.5
+            format:
+              unit: "decimal"
+              decimalPlaces: 0
+        queries:
+          - kind: "TimeSeriesQuery"
+            spec:
+              plugin:
+                kind: "PrometheusTimeSeriesQuery"
+                spec:
+                  query: 'sum(increase(claude_code_code_edit_tool_decision_total{organization_id=~"$organization", user_email=~"$user"}[$__range])) by (language)'
+                  seriesNameFormat: "{{language}}"
+
+    sessionsByTerminal:
+      kind: "Panel"
+      spec:
+        display:
+          name: "Sessions by Terminal"
+          description: >-
+            Distinct session count grouped by terminal_type over the dashboard
+            time range. Counts unique session_ids rather than summing
+            rate-of-change, so it is robust to OTLP delta/cumulative ambiguity.
+        plugin:
+          kind: "PieChart"
+          spec:
+            calculation: "last"
+            sort: "desc"
+            mode: "value"
+            radius: 0.5
+            format:
+              unit: "decimal"
+              decimalPlaces: 0
+        queries:
+          - kind: "TimeSeriesQuery"
+            spec:
+              plugin:
+                kind: "PrometheusTimeSeriesQuery"
+                spec:
+                  query: 'count by (terminal_type) (count by (session_id, terminal_type) (max_over_time(claude_code_session_count_total{organization_id=~"$organization", user_email=~"$user"}[$__range])))'
+                  seriesNameFormat: "{{terminal_type}}"
+
+    costOverTime:
+      kind: "Panel"
+      spec:
+        display:
+          name: "Cost Over Time"
+          description: "Estimated cost rate over time (USD per hour)"
+        plugin:
+          kind: "TimeSeriesChart"
+          spec: {}
+        queries:
+          - kind: "TimeSeriesQuery"
+            spec:
+              plugin:
+                kind: "PrometheusTimeSeriesQuery"
+                spec:
+                  query: 'sum(rate(claude_code_cost_usage_USD_total{organization_id=~"$organization", user_email=~"$user", model=~"$model"}[$__rate_interval])) * 3600'
+                  seriesNameFormat: "Cost $/hour"
+
+    costByModelTimeseries:
+      kind: "Panel"
+      spec:
+        display:
+          name: "Cost by Model"
+          description: "Cost breakdown by Claude model (e.g., claude-opus-4-6, claude-haiku-4-5)"
+        plugin:
+          kind: "TimeSeriesChart"
+          spec: {}
+        queries:
+          - kind: "TimeSeriesQuery"
+            spec:
+              plugin:
+                kind: "PrometheusTimeSeriesQuery"
+                spec:
+                  query: 'sum(rate(claude_code_cost_usage_USD_total{organization_id=~"$organization", user_email=~"$user", model=~"$model"}[$__rate_interval])) by (model) * 3600'
+                  seriesNameFormat: "{{model}}"
+
+    tokenUsageByType:
+      kind: "Panel"
+      spec:
+        display:
+          name: "Token Usage by Type"
+          description: "Token consumption rate by type (input, output, cacheRead, cacheCreation)"
+        plugin:
+          kind: "TimeSeriesChart"
+          spec: {}
+        queries:
+          - kind: "TimeSeriesQuery"
+            spec:
+              plugin:
+                kind: "PrometheusTimeSeriesQuery"
+                spec:
+                  query: 'sum(rate(claude_code_token_usage_tokens_total{organization_id=~"$organization", user_email=~"$user", model=~"$model"}[$__rate_interval])) by (type)'
+                  seriesNameFormat: "{{type}}"
+
+    tokenUsageByModel:
+      kind: "Panel"
+      spec:
+        display:
+          name: "Token Usage by Model"
+          description: "Token consumption rate by Claude model"
+        plugin:
+          kind: "TimeSeriesChart"
+          spec: {}
+        queries:
+          - kind: "TimeSeriesQuery"
+            spec:
+              plugin:
+                kind: "PrometheusTimeSeriesQuery"
+                spec:
+                  query: 'sum(rate(claude_code_token_usage_tokens_total{organization_id=~"$organization", user_email=~"$user", model=~"$model"}[$__rate_interval])) by (model)'
+                  seriesNameFormat: "{{model}}"
+
+    costByQuerySource:
+      kind: "Panel"
+      spec:
+        display:
+          name: "Cost by query_source"
+          description: >-
+            Splits cost between the main session and auxiliary tasks
+            (subagents, background calls). High auxiliary cost relative to
+            main may indicate over-delegation to subagents.
+        plugin:
+          kind: "PieChart"
+          spec:
+            calculation: "last"
+            sort: "desc"
+            mode: "value"
+            radius: 0.5
+            format:
+              unit: "usd"
+              decimalPlaces: 2
+        queries:
+          - kind: "TimeSeriesQuery"
+            spec:
+              plugin:
+                kind: "PrometheusTimeSeriesQuery"
+                spec:
+                  query: 'sum(increase(claude_code_cost_usage_USD_total{organization_id=~"$organization", user_email=~"$user", model=~"$model"}[$__range])) by (query_source)'
+                  seriesNameFormat: "{{query_source}}"
+
+    costByEffort:
+      kind: "Panel"
+      spec:
+        display:
+          name: "Cost by effort"
+          description: >-
+            Cost distribution by reasoning-effort tier (xhigh, etc.). Reveals
+            which thinking modes drive your spend.
+        plugin:
+          kind: "PieChart"
+          spec:
+            calculation: "last"
+            sort: "desc"
+            mode: "value"
+            radius: 0.5
+            format:
+              unit: "usd"
+              decimalPlaces: 2
+        queries:
+          - kind: "TimeSeriesQuery"
+            spec:
+              plugin:
+                kind: "PrometheusTimeSeriesQuery"
+                spec:
+                  query: 'sum(increase(claude_code_cost_usage_USD_total{organization_id=~"$organization", user_email=~"$user", model=~"$model"}[$__range])) by (effort)'
+                  seriesNameFormat: "{{effort}}"
+
+    activeTimePerHour:
+      kind: "Panel"
+      spec:
+        display:
+          name: "Active Time (per hour)"
+          description: "Active time per hour: 'cli' = Claude Code processing time, 'user' = user interaction time"
+        plugin:
+          kind: "TimeSeriesChart"
+          spec: {}
+        queries:
+          - kind: "TimeSeriesQuery"
+            spec:
+              plugin:
+                kind: "PrometheusTimeSeriesQuery"
+                spec:
+                  query: 'sum(rate(claude_code_active_time_seconds_total{organization_id=~"$organization", user_email=~"$user"}[$__rate_interval])) by (type) * 3600'
+                  seriesNameFormat: "{{type}}"
+
+    linesOfCodePerHour:
+      kind: "Panel"
+      spec:
+        display:
+          name: "Lines of Code (per hour)"
+          description: "Lines of code modified by Claude Code per hour"
+        plugin:
+          kind: "TimeSeriesChart"
+          spec: {}
+        queries:
+          - kind: "TimeSeriesQuery"
+            spec:
+              plugin:
+                kind: "PrometheusTimeSeriesQuery"
+                spec:
+                  query: 'sum(rate(claude_code_lines_of_code_count_total{organization_id=~"$organization", user_email=~"$user"}[$__rate_interval])) by (type) * 3600'
+                  seriesNameFormat: "{{type}}"
+
+    toolDecisionsOverTime:
+      kind: "Panel"
+      spec:
+        display:
+          name: "Tool Decisions Over Time"
+          description: "User decisions on Claude Code tool suggestions (accept vs reject)"
+        plugin:
+          kind: "TimeSeriesChart"
+          spec: {}
+        queries:
+          - kind: "TimeSeriesQuery"
+            spec:
+              plugin:
+                kind: "PrometheusTimeSeriesQuery"
+                spec:
+                  query: 'sum(increase(claude_code_code_edit_tool_decision_total{organization_id=~"$organization", user_email=~"$user"}[$__rate_interval])) by (decision)'
+                  seriesNameFormat: "{{decision}}"
+
+  layouts:
+    - kind: "Grid"
+      spec:
+        display:
+          title: "Overview"
+        items:
+          - x: 0
+            y: 0
+            width: 3
+            height: 4
+            content:
+              $ref: "#/spec/panels/sessions"
+          - x: 3
+            y: 0
+            width: 3
+            height: 4
+            content:
+              $ref: "#/spec/panels/users"
+          - x: 6
+            y: 0
+            width: 3
+            height: 4
+            content:
+              $ref: "#/spec/panels/totalCost"
+          - x: 9
+            y: 0
+            width: 3
+            height: 4
+            content:
+              $ref: "#/spec/panels/totalTokens"
+          - x: 12
+            y: 0
+            width: 3
+            height: 4
+            content:
+              $ref: "#/spec/panels/commits"
+          - x: 15
+            y: 0
+            width: 3
+            height: 4
+            content:
+              $ref: "#/spec/panels/pullRequests"
+          - x: 18
+            y: 0
+            width: 3
+            height: 4
+            content:
+              $ref: "#/spec/panels/linesAdded"
+          - x: 21
+            y: 0
+            width: 3
+            height: 4
+            content:
+              $ref: "#/spec/panels/linesRemoved"
+          - x: 0
+            y: 4
+            width: 6
+            height: 6
+            content:
+              $ref: "#/spec/panels/activeTime"
+          - x: 6
+            y: 4
+            width: 6
+            height: 6
+            content:
+              $ref: "#/spec/panels/tokensByType"
+          - x: 12
+            y: 4
+            width: 6
+            height: 6
+            content:
+              $ref: "#/spec/panels/toolDecisions"
+          - x: 18
+            y: 4
+            width: 6
+            height: 6
+            content:
+              $ref: "#/spec/panels/cacheHitRatio"
+
+    - kind: "Grid"
+      spec:
+        display:
+          title: "Leaderboards"
+        items:
+          - x: 0
+            y: 0
+            width: 6
+            height: 5
+            content:
+              $ref: "#/spec/panels/topUsersByCost"
+          - x: 6
+            y: 0
+            width: 6
+            height: 5
+            content:
+              $ref: "#/spec/panels/topUsersByTokens"
+          - x: 12
+            y: 0
+            width: 12
+            height: 5
+            content:
+              $ref: "#/spec/panels/topSessionsByCost"
+          - x: 0
+            y: 5
+            width: 8
+            height: 8
+            content:
+              $ref: "#/spec/panels/costByModelPie"
+          - x: 8
+            y: 5
+            width: 8
+            height: 8
+            content:
+              $ref: "#/spec/panels/editDecisionsByLanguage"
+          - x: 16
+            y: 5
+            width: 8
+            height: 8
+            content:
+              $ref: "#/spec/panels/sessionsByTerminal"
+
+    - kind: "Grid"
+      spec:
+        display:
+          title: "Cost & Tokens"
+        items:
+          - x: 0
+            y: 0
+            width: 12
+            height: 8
+            content:
+              $ref: "#/spec/panels/costOverTime"
+          - x: 12
+            y: 0
+            width: 12
+            height: 8
+            content:
+              $ref: "#/spec/panels/costByModelTimeseries"
+          - x: 0
+            y: 8
+            width: 12
+            height: 8
+            content:
+              $ref: "#/spec/panels/tokenUsageByType"
+          - x: 12
+            y: 8
+            width: 12
+            height: 8
+            content:
+              $ref: "#/spec/panels/tokenUsageByModel"
+          - x: 0
+            y: 16
+            width: 12
+            height: 8
+            content:
+              $ref: "#/spec/panels/costByQuerySource"
+          - x: 12
+            y: 16
+            width: 12
+            height: 8
+            content:
+              $ref: "#/spec/panels/costByEffort"
+
+    - kind: "Grid"
+      spec:
+        display:
+          title: "Activity & Productivity"
+        items:
+          - x: 0
+            y: 0
+            width: 24
+            height: 8
+            content:
+              $ref: "#/spec/panels/activeTimePerHour"
+          - x: 0
+            y: 8
+            width: 12
+            height: 8
+            content:
+              $ref: "#/spec/panels/linesOfCodePerHour"
+          - x: 12
+            y: 8
+            width: 12
+            height: 8
+            content:
+              $ref: "#/spec/panels/toolDecisionsOverTime"

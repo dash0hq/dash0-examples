@@ -1,0 +1,13 @@
+kind: "GlobalDatasource"
+metadata:
+  name: "prometheus"
+spec:
+  default: true
+  plugin:
+    kind: "PrometheusDatasource"
+    spec:
+      proxy:
+        kind: "HTTPProxy"
+        spec:
+          url: "http://prometheus:9090"
+          allowedEndpoints: []

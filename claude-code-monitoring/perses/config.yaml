@@ -1,0 +1,9 @@
+provisioning:
+  interval: 1h
+  folders:
+    - "/etc/perses/provisioning"
+
+database:
+  file:
+    folder: "/etc/perses/data"
+    extension: "yaml"

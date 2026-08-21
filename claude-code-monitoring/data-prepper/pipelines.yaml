@@ -1,0 +1,12 @@
+version: "2"
+otlp-logs-pipeline:
+  source:
+    otlp:
+      port: 21893
+      ssl: false
+      output_format: "otel"
+  sink:
+    - opensearch:
+        hosts: ["http://opensearch:9200"]
+        index: "otel-logs"
+        insecure: true

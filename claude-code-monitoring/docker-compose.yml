@@ -7,6 +7,8 @@ services:
     restart: unless-stopped
     ports:
       - 4317:4317
+    depends_on:
+      - data-prepper
 
   prometheus:
     image: prom/prometheus:v3.13.2
@@ -26,17 +28,43 @@ services:
     ports:
       - 9090:9090
 
-  victoria-logs:
-    image: victoriametrics/victoria-logs:v1.52.0
-    container_name: victoria-logs
+  opensearch:
+    image: opensearchproject/opensearch:3.6.0
+    container_name: opensearch
     restart: unless-stopped
-    ports:
-      - 9428:9428
+    environment:
+      discovery.type: single-node
+      DISABLE_SECURITY_PLUGIN: "true"
+      OPENSEARCH_JAVA_OPTS: -Xms512m -Xmx512m
     volumes:
-      - victoria_logs_data:/victoria-logs-data
-    command:
-      - --storageDataPath=/victoria-logs-data
-      - --httpListenAddr=:9428
+      - opensearch_data:/usr/share/opensearch/data
+    ports:
+      - 9200:9200
+      - 9600:9600
+
+  data-prepper:
+    image: opensearchproject/data-prepper:2.16.0
+    container_name: data-prepper
+    restart: unless-stopped
+    volumes:
+      - ./data-prepper/pipelines.yaml:/usr/share/data-prepper/pipelines/pipelines.yaml
+      - ./data-prepper/data-prepper-config.yaml:/usr/share/data-prepper/config/data-prepper-config.yaml
+    ports:
+      - 21893:21893
+    depends_on:
+      - opensearch
+
+  opensearch-dashboards:
+    image: opensearchproject/opensearch-dashboards:3.6.0
+    container_name: opensearch-dashboards
+    restart: unless-stopped
+    environment:
+      OPENSEARCH_HOSTS: '["http://opensearch:9200"]'
+      DISABLE_SECURITY_DASHBOARDS_PLUGIN: "true"
+    ports:
+      - 5601:5601
+    depends_on:
+      - opensearch
 
   jaeger:
     image: jaegertracing/jaeger:2.20.0
@@ -47,26 +75,21 @@ services:
     ports:
       - 16686:16686
 
-  grafana:
-    image: grafana/grafana-oss:13.0.2
-    container_name: grafana
+  perses:
+    image: persesdev/perses:v0.54.0
+    container_name: perses
     ports:
-      - 3000:3000
-    environment:
-      GF_SECURITY_DISABLE_INITIAL_ADMIN_CREATION: true
-      GF_AUTH_ANONYMOUS_ENABLED: true
-      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
-      GF_AUTH_DISABLE_SIGNOUT_MENU: true
-      GF_AUTH_DISABLE_LOGIN_FORM: true
+      - 8080:8080
     volumes:
-      - grafana_data:/var/lib/grafana
-      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./perses/config.yaml:/etc/perses/config.yaml
+      - ./perses/provisioning:/etc/perses/provisioning
+      - perses_data:/etc/perses/data
     depends_on:
       - prometheus
-      - victoria-logs
+      - opensearch
       - jaeger
 
 volumes:
   prometheus_data:
-  grafana_data:
-  victoria_logs_data:
+  perses_data:
+  opensearch_data:
